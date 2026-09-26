@@ -1,0 +1,283 @@
+:root {
+    --naranja: #e8590c;
+    --naranja-oscuro: #c74a08;
+    --gris-oscuro: #212529;
+    --gris: #495057;
+    --gris-claro: #f1f3f5;
+    --borde: #dee2e6;
+    --verde: #2b8a3e;
+    --rojo: #c92a2a;
+}
+
+* { box-sizing: border-box; }
+
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+    margin: 0;
+    font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: var(--gris-claro);
+    color: var(--gris-oscuro);
+}
+
+/* ---------- Barra superior ---------- */
+.topbar {
+    background: var(--gris-oscuro);
+    color: #fff;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+.topbar-inner {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 12px 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+}
+.brand { color: #fff; text-decoration: none; font-weight: 700; font-size: 1.15rem; letter-spacing: .5px; }
+.brand span { color: var(--naranja); }
+.topbar nav { display: flex; align-items: center; gap: 8px; }
+.user-chip { color: #ced4da; font-size: .85rem; max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* ---------- Layout general (mobile-first) ---------- */
+.container { max-width: 700px; margin: 0 auto; padding: 16px 14px 90px; }
+
+.footer { text-align: center; color: #868e96; font-size: .8rem; padding: 20px 14px; }
+
+h1 { font-size: 1.35rem; margin: 0 0 2px; }
+h2 { font-size: 1.05rem; margin-top: 1.6rem; margin-bottom: 8px; }
+.subtitle { color: var(--gris); margin: 0 0 14px; font-size: .92rem; }
+
+.mobile-header { margin-bottom: 14px; }
+
+.card {
+    background: #fff;
+    border: 1px solid var(--borde);
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 16px;
+}
+
+/* ---------- Formularios: táctiles y sin zoom en iOS ---------- */
+.grid-form { display: grid; gap: 16px; }
+label { font-weight: 600; font-size: .88rem; display: block; margin-bottom: 6px; color: var(--gris-oscuro); }
+
+input[type=text], input[type=number], input[type=password], select, textarea, input[type=file] {
+    width: 100%;
+    padding: 12px 12px;
+    border: 1px solid var(--borde);
+    border-radius: 8px;
+    font-size: 16px; /* 16px evita el zoom automático al enfocar en iOS */
+    background: #fff;
+    -webkit-appearance: none;
+    appearance: none;
+}
+select {
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23495057' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    background-size: 18px;
+    padding-right: 34px;
+}
+textarea { resize: vertical; }
+input[type=file] { padding: 10px; font-size: .9rem; }
+
+/* Fila de puntos (red / fuerza / iluminación) como bloque apilable en celular */
+.puntos-list { display: flex; flex-direction: column; gap: 10px; margin-top: 6px; }
+.punto-row {
+    display: grid;
+    grid-template-columns: 1fr 100px;
+    gap: 10px;
+    align-items: center;
+    background: var(--gris-claro);
+    border-radius: 8px;
+    padding: 8px;
+}
+.punto-cantidad input { text-align: center; }
+
+.btn {
+    display: inline-block;
+    padding: 13px 20px;
+    border-radius: 8px;
+    border: none;
+    background: var(--naranja);
+    color: #fff;
+    font-weight: 700;
+    cursor: pointer;
+    text-decoration: none;
+    font-size: 1rem;
+    text-align: center;
+}
+.btn:active { background: var(--naranja-oscuro); }
+.btn-block { width: 100%; }
+.btn-ghost { background: transparent; border: 1px solid #495057; color: #fff; padding: 8px 14px; font-size: .85rem; }
+.btn-secondary { background: var(--gris); }
+
+.alert { padding: 12px 14px; border-radius: 8px; margin-bottom: 14px; font-size: .9rem; }
+.alert-success { background: #ebfbee; color: var(--verde); border: 1px solid #b2f2bb; }
+.alert-error { background: #fff5f5; color: var(--rojo); border: 1px solid #ffc9c9; }
+
+.badge {
+    display: inline-block;
+    background: var(--naranja);
+    color: #fff;
+    border-radius: 999px;
+    padding: 3px 12px;
+    font-size: .78rem;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+/* ---------- Historial del trabajador: tarjetas, no tabla ---------- */
+.reportes-lista { display: flex; flex-direction: column; gap: 10px; }
+.reporte-card {
+    background: #fff;
+    border: 1px solid var(--borde);
+    border-radius: 10px;
+    padding: 12px 14px;
+}
+.reporte-card-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
+}
+.reporte-fecha { font-size: .82rem; color: var(--gris); }
+.reporte-obra { font-weight: 600; font-size: .95rem; }
+.reporte-comentario { font-size: .85rem; color: var(--gris); margin-top: 4px; }
+
+/* ---------- Panel supervisor/gerencia: tabla tradicional (más útil en desktop) ---------- */
+table.reportes { width: 100%; border-collapse: collapse; }
+table.reportes th, table.reportes td {
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--borde);
+    text-align: left;
+    font-size: .88rem;
+}
+table.reportes th { background: #f8f9fa; }
+
+.filters { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end; margin-bottom: 16px; }
+.filters div { flex: 1 1 140px; min-width: 140px; }
+
+.stat-box { display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; }
+.stat { background: #fff; border: 1px solid var(--borde); border-radius: 10px; padding: 14px 20px; flex: 1 1 140px; }
+.stat .num { font-size: 1.6rem; font-weight: 800; color: var(--naranja); }
+.stat .label { font-size: .8rem; color: var(--gris); }
+
+.login-wrap { max-width: 380px; margin: 40px auto; padding: 0 10px; }
+
+/* ---------- A partir de tablet/desktop, un poco más de aire ---------- */
+@media (min-width: 640px) {
+    .container { padding: 24px 20px 60px; }
+    h1 { font-size: 1.6rem; }
+    .card { padding: 22px; }
+    .punto-row { grid-template-columns: 1fr 120px; }
+    .btn-block { width: auto; }
+}
+
+@media (min-width: 900px) {
+    .container { max-width: 1100px; }
+}
+
+/* ---------- Cabecera del panel con botón de admin ---------- */
+.panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 8px;
+}
+.btn-admin {
+    background: var(--gris-oscuro);
+    font-size: .9rem;
+    padding: 10px 16px;
+    white-space: nowrap;
+}
+.btn-admin:active { background: #000; }
+
+/* ---------- Fotos de reportes ---------- */
+.reporte-foto {
+    margin-top: 10px;
+    width: 100%;
+    max-width: 320px;
+    border-radius: 8px;
+    border: 1px solid var(--borde);
+    display: block;
+}
+.reporte-foto-link { display: inline-block; }
+.tabla-foto {
+    width: 56px;
+    height: 56px;
+    object-fit: cover;
+    border-radius: 6px;
+    border: 1px solid var(--borde);
+    cursor: pointer;
+}
+
+/* ---------- Visor de foto (lightbox) ---------- */
+.visor-overlay {
+    display: none;
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,.8);
+    z-index: 100;
+    justify-content: center;
+    align-items: center;
+}
+.visor-overlay.visor-activo { display: flex; }
+
+.visor-contenido {
+    background: #fff;
+    border-radius: 12px;
+    max-width: 90vw;
+    max-height: 90vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    box-shadow: 0 10px 40px rgba(0,0,0,.4);
+}
+.visor-contenido img {
+    max-width: 100%;
+    max-height: 70vh;
+    object-fit: contain;
+    display: block;
+}
+.visor-cerrar {
+    position: absolute;
+    top: 8px; right: 12px;
+    background: rgba(0,0,0,.5);
+    color: #fff;
+    border: none;
+    font-size: 1.5rem;
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    cursor: pointer;
+    line-height: 1;
+    z-index: 2;
+}
+.visor-cerrar:hover { background: rgba(0,0,0,.8); }
+
+.visor-info {
+    padding: 12px 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    border-top: 1px solid var(--borde);
+}
+.visor-info span { font-size: .9rem; color: var(--gris); }
+.btn-descargar {
+    background: var(--naranja);
+    font-size: .85rem;
+    padding: 8px 14px;
+    white-space: nowrap;
+}
+
+.tabla-foto { cursor: pointer; }
+.tabla-foto:hover { opacity: .8; transform: scale(1.05); transition: .15s; }

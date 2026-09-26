@@ -1,0 +1,115 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es-CL">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}MARVELEC SPA{% endblock %}</title>
+
+    <!-- PWA -->
+    <link rel="manifest" href="{% static 'marvelec_app/manifest.json' %}">
+    <meta name="theme-color" content="#3a288f">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="{% static 'marvelec_app/icons/icon-192x192.png' %}">
+
+    <link rel="stylesheet" href="{% static 'marvelec_app/css/style.css' %}">
+</head>
+<body class="{% block body_class %}{% endblock %}">
+    <header class="topbar">
+        <div class="topbar-inner">
+            <a href="{% url 'marvelec_app:panel' %}" class="brand">MARVELEC <span>SPA</span></a>
+            {% if user.is_authenticated %}
+            <nav>
+                <span class="user-chip">{{ user.get_full_name|default:user.username }}</span>
+                <a href="{% url 'marvelec_app:logout' %}" class="btn btn-ghost">Cerrar sesión</a>
+            </nav>
+            {% endif %}
+        </div>
+    </header>
+
+    <main class="container">
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer class="footer">
+        <p>MARVELEC SPA &middot; Sistema de Reporte y Seguimiento de Avance</p>
+    </footer>
+
+    <!-- Registro del Service Worker + Suscripción a notificaciones push -->
+    <script>
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register("{% static 'marvelec_app/sw.js' %}")
+            .then(reg => {
+                console.log('SW registrado:', reg.scope);
+            })
+            .catch(err => console.warn('SW no se pudo registrar:', err));
+    }
+
+    // Pedir permiso de notificaciones si el usuario está logueado
+    {% if user.is_authenticated %}
+    async function suscribirNotificaciones() {
+        if (!('Notification' in window) || !('PushManager' in window)) return;
+        if (Notification.permission === 'granted') {
+            await enviarSuscripcion();
+        } else if (Notification.permission !== 'denied') {
+            const permiso = await Notification.requestPermission();
+            if (permiso === 'granted') await enviarSuscripcion();
+        }
+    }
+
+    async function enviarSuscripcion() {
+        try {
+            const reg = await navigator.serviceWorker.ready;
+            let sub = await reg.pushManager.getSubscription();
+            if (!sub) {
+                // Obtener la clave pública VAPID del servidor
+                const resp = await fetch('/notificaciones/vapid-key/');
+                const data = await resp.json();
+                sub = await reg.pushManager.subscribe({
+                    userVisibleOnly: true,
+                    applicationServerKey: urlBase64ToUint8Array(data.public_key),
+                });
+            }
+            // Enviar suscripción al servidor
+            await fetch('/notificaciones/suscribir/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken'),
+                },
+                body: JSON.stringify(sub.toJSON()),
+            });
+        } catch (e) {
+            console.warn('No se pudo suscribir a notificaciones:', e);
+        }
+    }
+
+    function urlBase64ToUint8Array(base64String) {
+        const padding = '='.repeat((4 - base64String.length % 4) % 4);
+        const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+        const raw = atob(base64);
+        return Uint8Array.from([...raw].map(c => c.charCodeAt(0)));
+    }
+
+    function getCookie(name) {
+        const v = document.cookie.match('(^|;)\\s*' + name + '\\s*=\\s*([^;]+)');
+        return v ? v.pop() : '';
+    }
+
+    // Suscribir al cargar la página
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', suscribirNotificaciones);
+    } else {
+        suscribirNotificaciones();
+    }
+    {% endif %}
+    </script>
+</body>
+</html>
