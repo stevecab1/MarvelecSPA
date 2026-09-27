@@ -113,3 +113,17 @@ LOGOUT_REDIRECT_URL = 'marvelec_app:login'
 CSRF_TRUSTED_ORIGINS = []
 if RENDER_EXTERNAL_HOSTNAME:
     CSRF_TRUSTED_ORIGINS.append(f"https://{RENDER_EXTERNAL_HOSTNAME}")
+
+# --- Email (SMTP) ---
+# En desarrollo usa la consola (imprime el correo en terminal).
+# En producción, configurar las variables de entorno con un SMTP real (Gmail, SendGrid, etc.)
+EMAIL_BACKEND = os.environ.get(
+    'EMAIL_BACKEND',
+    'django.core.mail.backends.console.EmailBackend'
+)
+EMAIL_HOST = os.environ.get('EMAIL_HOST', 'smtp.gmail.com')
+EMAIL_PORT = int(os.environ.get('EMAIL_PORT', '587'))
+EMAIL_USE_TLS = os.environ.get('EMAIL_USE_TLS', 'True') == 'True'
+EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', 'stevens.alday@alumnos.ucn.cl')
+EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', 'verdugo123dbzA')
+DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'MARVELEC SPA <stevens.alday@alumnos.ucn.cl>')

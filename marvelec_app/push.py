@@ -125,7 +125,7 @@ def enviar_notificacion_push(usuario_destino, titulo, cuerpo, url='/panel/'):
 def notificar_supervisores_de_obra(reporte):
     """
     Notifica a todos los supervisores y gerentes asociados a la obra
-    del reporte recién creado.
+    del reporte recién creado (push + email).
     """
     from django.contrib.auth.models import User
 
@@ -136,13 +136,13 @@ def notificar_supervisores_de_obra(reporte):
         f'en {reporte.obra.nombre} / {reporte.subetapa.nombre}'
     )
 
-    # Buscar supervisores de esta obra + todos los gerentes
     perfiles = PerfilTrabajador.objects.filter(
         rol__in=[PerfilTrabajador.ROL_SUPERVISOR, PerfilTrabajador.ROL_GERENCIA]
     ).select_related('usuario')
 
+    destinatarios_email = []
+
     for perfil in perfiles:
-        # Supervisores solo reciben si están asignados a esa obra (o sin obra = todos)
         if perfil.rol == PerfilTrabajador.ROL_SUPERVISOR and perfil.obra_asignada_id:
             if perfil.obra_asignada_id != reporte.obra_id:
                 continue
@@ -150,3 +150,56 @@ def notificar_supervisores_de_obra(reporte):
             perfil.usuario, titulo, cuerpo,
             url=f'/panel/supervision/?obra={reporte.obra_id}'
         )
+        if perfil.usuario.email:
+            destinatarios_email.append(perfil.usuario.email)
+
+    if destinatarios_email:
+        enviar_notificacion_email(reporte, destinatarios_email)
+
+
+def enviar_notificacion_email(reporte, destinatarios):
+    """Envía un correo a los supervisores/gerentes cuando se crea un reporte."""
+    from django.core.mail import send_mail
+    from django.conf import settings
+
+    trabajador_nombre = reporte.trabajador.get_full_name() or reporte.trabajador.username
+
+    conteo = {}
+    for registro in reporte.registros.all():
+        conteo[registro.get_tipo_punto_display()] = registro.cantidad
+
+    detalle_puntos = '\n'.join(
+        f'  - {tipo}: {cant}' for tipo, cant in conteo.items() if cant > 0
+    )
+
+    asunto = (
+        f'[MARVELEC] {trabajador_nombre} reportó {reporte.total_puntos} puntos '
+        f'en {reporte.obra.nombre}'
+    )
+
+    mensaje = (
+        f'Nuevo reporte de avance\n'
+        f'========================\n\n'
+        f'Trabajador: {trabajador_nombre}\n'
+        f'Obra: {reporte.obra.nombre}\n'
+        f'Subetapa: {reporte.subetapa.nombre}\n'
+        f'Fecha: {reporte.fecha_hora.strftime("%d-%m-%Y %H:%M")}\n\n'
+        f'Puntos ejecutados ({reporte.total_puntos} total):\n'
+        f'{detalle_puntos}\n'
+    )
+
+    if reporte.comentario:
+        mensaje += f'\nComentario: {reporte.comentario}\n'
+
+    mensaje += '\n--\nMARVELEC SPA - Sistema de Reporte y Seguimiento de Avance'
+
+    try:
+        send_mail(
+            subject=asunto,
+            message=mensaje,
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=destinatarios,
+            fail_silently=True,
+        )
+    except Exception:
+        pass
