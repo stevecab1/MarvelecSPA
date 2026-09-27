@@ -2,11 +2,16 @@
 {% block title %}Mi Reporte - MARVELEC{% endblock %}
 {% block body_class %}pagina-trabajador{% endblock %}
 {% block content %}
-<div class="mobile-header">
-    <h1>Hola, {{ user.get_full_name|default:user.username }}</h1>
-    <p class="subtitle">
-        Obra: <strong>{{ perfil.obra_asignada|default:"No asignada" }}</strong>
-    </p>
+<div class="panel-header">
+    <div>
+        <h1>Hola, {{ user.get_full_name|default:user.username }}</h1>
+        <p class="subtitle">
+            Obra: <strong>{{ perfil.obra_asignada|default:"No asignada" }}</strong>
+        </p>
+    </div>
+    {% if user.is_staff %}
+    <a href="/admin/" class="btn btn-admin">⚙️ Panel de administración</a>
+    {% endif %}
 </div>
 
 <div class="card card-form">
