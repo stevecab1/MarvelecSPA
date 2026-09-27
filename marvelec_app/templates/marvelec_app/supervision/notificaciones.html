@@ -1,0 +1,23 @@
+{% extends "layouts/escritorio.html" %}
+{% load marvelec_tags %}
+{% block title %}Avisos - MARVELEC{% endblock %}
+{% block page_title %}Notificaciones{% endblock %}
+{% block page_subtitle %}Nuevos reportes, correcciones y resúmenes diarios{% endblock %}
+{% block content %}
+<div style="max-width:760px" class="stack">
+    <div class="card row-between">
+        <div>
+            <strong>Notificaciones en este dispositivo</strong>
+            <p class="muted small">Recibe avisos en el escritorio aunque la app esté cerrada.</p>
+        </div>
+        <div class="row">
+            <button type="button" class="btn btn-secondary btn-sm" data-push-toggle hidden>{% icono "bell" "icon-sm" %} <span>Activar</span></button>
+            <form method="post" action="{% url 'marvelec_app:notificaciones_leer_todas' %}">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-ghost btn-sm">{% icono "check" "icon-sm" %} Marcar todo leído</button>
+            </form>
+        </div>
+    </div>
+    {% include "marvelec_app/partials/notificaciones_lista.html" %}
+</div>
+{% endblock %}

@@ -1,0 +1,71 @@
+{% extends "layouts/escritorio.html" %}
+{% load static marvelec_tags %}
+{% block title %}Reportes - MARVELEC{% endblock %}
+{% block page_title %}Reportes de avance{% endblock %}
+{% block page_subtitle %}{{ pagina.paginator.count }} reporte{{ pagina.paginator.count|pluralize }} · {{ total_puntos }} puntos{% endblock %}
+{% block topbar_actions %}
+<a class="btn btn-secondary" href="{% url 'marvelec_app:exportar_excel' %}?{{ querystring }}">{% icono "download" "icon-sm" %} <span class="hide-mobile">Exportar a Excel</span></a>
+{% endblock %}
+{% block content %}
+<div class="stack">
+    {% include "marvelec_app/partials/filtros.html" with con_fechas=True con_estado=True %}
+
+    <div class="card card-flush">
+        <div class="table-wrap">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Fecha</th>
+                        <th>Trabajador</th>
+                        <th>Obra / Subetapa</th>
+                        <th class="t-right">Puntos</th>
+                        <th>Desglose</th>
+                        <th>Foto</th>
+                        <th>Estado</th>
+                        <th>Comentario</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for reporte in pagina %}
+                    <tr class="is-link" data-href="{% url 'marvelec_app:reporte_detalle' reporte.pk %}">
+                        <td class="nowrap">{{ reporte.fecha_hora|date:"d-m-Y" }}<br><span class="muted small">{{ reporte.fecha_hora|date:"H:i" }}</span></td>
+                        <td>
+                            <span class="person">
+                                <span class="avatar">{{ reporte.trabajador|iniciales }}</span>
+                                <b>{{ reporte.nombre_trabajador }}</b>
+                            </span>
+                        </td>
+                        <td>{{ reporte.obra.nombre }}<br><span class="muted small">{{ reporte.subetapa.nombre }}</span></td>
+                        <td class="t-right"><span class="pts">{{ reporte.total_puntos }}</span></td>
+                        <td>{% include "marvelec_app/partials/desglose.html" %}</td>
+                        <td>
+                            {% if reporte.foto_llegada %}
+                            <img src="{{ reporte.foto_llegada.url }}" alt="Foto" class="table-thumb" loading="lazy"
+                                 data-lightbox="{{ reporte.foto_llegada.url }}"
+                                 data-caption="{{ reporte.nombre_trabajador }} — {{ reporte.fecha_hora|date:'d-m-Y H:i' }}">
+                            {% else %}<span class="muted">—</span>{% endif %}
+                        </td>
+                        <td>{% include "marvelec_app/partials/estado_badge.html" %}</td>
+                        <td class="small" style="max-width:260px">{{ reporte.comentario|default:"—"|truncatechars:80 }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="8"><div class="empty">{% icono "inbox" %}No hay reportes para los filtros seleccionados.</div></td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% if pagina.has_other_pages %}
+        <div class="pagination">
+            <span>Página {{ pagina.number }} de {{ pagina.paginator.num_pages }}</span>
+            <span class="row">
+                {% if pagina.has_previous %}<a class="btn btn-secondary btn-sm" href="{% qs page=pagina.previous_page_number %}">{% icono "chevron-left" "icon-sm" %} Anterior</a>{% endif %}
+                {% if pagina.has_next %}<a class="btn btn-secondary btn-sm" href="{% qs page=pagina.next_page_number %}">Siguiente {% icono "chevron-right" "icon-sm" %}</a>{% endif %}
+            </span>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+{% block page_scripts %}
+<script src="{% static 'marvelec_app/js/supervision.js' %}"></script>
+{% endblock %}

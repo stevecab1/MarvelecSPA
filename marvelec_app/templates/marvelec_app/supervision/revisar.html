@@ -1,0 +1,88 @@
+{% extends "layouts/escritorio.html" %}
+{% load static marvelec_tags %}
+{% block title %}Por revisar - MARVELEC{% endblock %}
+{% block page_title %}Por revisar{% endblock %}
+{% block page_subtitle %}<span data-cola-total>{{ total }}</span> reporte{{ total|pluralize }} pendiente{{ total|pluralize }} · los más antiguos primero{% endblock %}
+{% block content %}
+<div class="stack">
+    {% include "marvelec_app/partials/filtros.html" %}
+
+    {% if pagina.object_list %}
+    <form method="post" action="{% url 'marvelec_app:revisar_masivo' %}" data-form-masivo>
+        {% csrf_token %}
+        <div class="review-toolbar">
+            <label class="review-check">
+                <input type="checkbox" class="check-all" data-check-all> Seleccionar todos
+            </label>
+            <div class="row">
+                <span class="muted small hide-mobile">Atajos: <kbd>J</kbd>/<kbd>K</kbd> moverse · <kbd>A</kbd> aprobar · <kbd>O</kbd> observar</span>
+                <button type="submit" class="btn btn-success btn-sm" data-aprobar-seleccion disabled>
+                    {% icono "check" "icon-sm" %} Aprobar seleccionados (<span data-n-seleccion>0</span>)
+                </button>
+            </div>
+        </div>
+    </form>
+
+    <div class="review-list" data-cola>
+        {% for reporte in pagina %}
+        <article class="review-card" tabindex="0" data-review="{{ reporte.pk }}"
+                 data-url-revisar="{% url 'marvelec_app:revisar_reporte' reporte.pk %}">
+            {% if reporte.foto_llegada %}
+            <img class="review-photo" src="{{ reporte.foto_llegada.url }}" alt="Foto de llegada" loading="lazy"
+                 data-lightbox="{{ reporte.foto_llegada.url }}"
+                 data-caption="{{ reporte.nombre_trabajador }} — {{ reporte.fecha_hora|date:'d-m-Y H:i' }}">
+            {% else %}
+            <div class="review-photo">{% icono "image" "icon-lg" %}<span class="small">Sin foto</span></div>
+            {% endif %}
+
+            <div class="review-info">
+                <div class="row-between">
+                    <span class="person">
+                        <span class="avatar">{{ reporte.trabajador|iniciales }}</span>
+                        <span><b>{{ reporte.nombre_trabajador }}</b><small>{{ reporte.fecha_hora|date:"l d-m-Y, H:i" }}{% if reporte.enviado_offline %} · enviado sin señal{% endif %}</small></span>
+                    </span>
+                    <label class="review-check"><input type="checkbox" form="" value="{{ reporte.pk }}" data-seleccion> Seleccionar</label>
+                </div>
+                <div class="row">
+                    {% icono "pin" "icon-sm" %}<span><b>{{ reporte.obra.nombre }}</b> / {{ reporte.subetapa.nombre }}</span>
+                </div>
+                <div class="row">
+                    <span class="pts" style="font-size:1.3rem">{{ reporte.total_puntos }} pts</span>
+                    {% include "marvelec_app/partials/desglose.html" %}
+                </div>
+                {% if reporte.comentario %}<div class="comentario">{{ reporte.comentario|linebreaksbr }}</div>{% endif %}
+                {% if reporte.comentario_revision %}<div class="small muted">Observación anterior: {{ reporte.comentario_revision }}</div>{% endif %}
+                <a href="{% url 'marvelec_app:reporte_detalle' reporte.pk %}" class="small">Ver detalle</a>
+            </div>
+
+            <div class="review-actions">
+                <button type="button" class="btn btn-success" data-accion="aprobar">{% icono "check" "icon-sm" %} Aprobar</button>
+                <button type="button" class="btn btn-warn" data-accion="mostrar-observar">{% icono "message" "icon-sm" %} Observar</button>
+                <div data-observar hidden class="stack" style="gap:8px">
+                    <textarea placeholder="¿Qué debe corregir?" aria-label="Observación"></textarea>
+                    <button type="button" class="btn btn-danger btn-sm" data-accion="observar">Enviar observación</button>
+                </div>
+            </div>
+        </article>
+        {% endfor %}
+    </div>
+
+    {% if pagina.has_other_pages %}
+    <div class="row-between">
+        {% if pagina.has_previous %}<a class="btn btn-secondary btn-sm" href="{% qs page=pagina.previous_page_number %}">{% icono "chevron-left" "icon-sm" %} Anterior</a>{% else %}<span></span>{% endif %}
+        <span class="muted small">Página {{ pagina.number }} de {{ pagina.paginator.num_pages }}</span>
+        {% if pagina.has_next %}<a class="btn btn-secondary btn-sm" href="{% qs page=pagina.next_page_number %}">Siguiente {% icono "chevron-right" "icon-sm" %}</a>{% else %}<span></span>{% endif %}
+    </div>
+    {% endif %}
+    {% endif %}
+
+    <div class="card empty" data-cola-vacia {% if pagina.object_list %}hidden{% endif %}>
+        {% icono "check-circle" %}
+        <h3>¡Todo revisado!</h3>
+        <p>No hay reportes pendientes{% if request.GET %} con estos filtros{% endif %}.</p>
+    </div>
+</div>
+{% endblock %}
+{% block page_scripts %}
+<script src="{% static 'marvelec_app/js/supervision.js' %}"></script>
+{% endblock %}

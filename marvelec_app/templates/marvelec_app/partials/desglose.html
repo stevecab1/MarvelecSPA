@@ -1,0 +1,1 @@
+{% with p=reporte.puntos_por_tipo %}<span class="desglose">{% if p.red %}<span class="tipo-red" title="Red">R {{ p.red }}</span>{% endif %}{% if p.fuerza %}<span class="tipo-fuerza" title="Fuerza">F {{ p.fuerza }}</span>{% endif %}{% if p.iluminacion %}<span class="tipo-iluminacion" title="Iluminación">I {{ p.iluminacion }}</span>{% endif %}</span>{% endwith %}

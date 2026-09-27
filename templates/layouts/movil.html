@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% load static marvelec_tags %}
+{% block body_class %}app-movil{% endblock %}
+{% block precache %}{% url 'marvelec_app:panel_trabajador' %} {% url 'marvelec_app:nuevo_reporte' %} {% url 'marvelec_app:historial_trabajador' %}{% endblock %}
+{% block layout %}
+{% with vista=request.resolver_match.url_name %}
+<header class="m-header">
+    <div class="m-header-inner">
+        <a href="{% url 'marvelec_app:panel_trabajador' %}" class="m-brand">
+            <img src="{% static 'marvelec_app/icons/icon-96x96.png' %}" alt="">
+            <span>
+                <strong>MARVELEC</strong>
+                <small>{{ perfil_app.obra_asignada|default:"Sin obra asignada" }}</small>
+            </span>
+        </a>
+        {% if user.is_staff %}
+        <a href="/admin/" class="btn btn-ghost btn-icon" aria-label="Administración">{% icono "settings" %}</a>
+        {% endif %}
+        <form method="post" action="{% url 'marvelec_app:logout' %}">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-ghost btn-icon" aria-label="Cerrar sesión">{% icono "logout" %}</button>
+        </form>
+    </div>
+</header>
+<div class="net-status">{% icono "cloud-off" "icon-sm" %} Sin conexión — tus reportes se guardan en el teléfono</div>
+
+<main class="m-main">
+    {% block content %}{% endblock %}
+</main>
+
+<nav class="tabbar" aria-label="Navegación principal">
+    <a href="{% url 'marvelec_app:panel_trabajador' %}" class="tab {% if vista == 'panel_trabajador' %}is-active{% endif %}">
+        {% icono "home" %}<span>Inicio</span>
+    </a>
+    <a href="{% url 'marvelec_app:historial_trabajador' %}" class="tab {% if vista == 'historial_trabajador' or vista == 'reporte_detalle' or vista == 'editar_reporte' %}is-active{% endif %}">
+        {% icono "list" %}<span>Historial</span>
+        <span class="count" data-outbox-count hidden></span>
+    </a>
+    <a href="{% url 'marvelec_app:nuevo_reporte' %}" class="tab tab-nuevo {% if vista == 'nuevo_reporte' %}is-active{% endif %}">
+        <span class="tab-fab">{% icono "plus" %}</span><span>Reportar</span>
+    </a>
+    <a href="{% url 'marvelec_app:notificaciones' %}" class="tab {% if vista == 'notificaciones' %}is-active{% endif %}">
+        {% icono "bell" %}<span>Avisos</span>
+        <span class="count" data-notif-count {% if not no_leidas %}hidden{% endif %}>{{ no_leidas }}</span>
+    </a>
+</nav>
+{% endwith %}
+{% endblock %}
+{% block scripts %}
+<script src="{% static 'marvelec_app/js/outbox.js' %}"></script>
+<script src="{% static 'marvelec_app/js/trabajador.js' %}"></script>
+{% block page_scripts %}{% endblock %}
+{% endblock %}

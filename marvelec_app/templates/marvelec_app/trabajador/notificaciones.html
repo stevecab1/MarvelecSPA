@@ -1,0 +1,29 @@
+{% extends "layouts/movil.html" %}
+{% load marvelec_tags %}
+{% block title %}Avisos - MARVELEC{% endblock %}
+{% block content %}
+<div class="row-between mb-3">
+    <h1>Avisos</h1>
+    <form method="post" action="{% url 'marvelec_app:notificaciones_leer_todas' %}">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-ghost btn-sm">{% icono "check" "icon-sm" %} Marcar leídas</button>
+    </form>
+</div>
+
+<div class="card row-between mb-3">
+    <div>
+        <strong>Notificaciones en este teléfono</strong>
+        <p class="muted small">Recibe un aviso cuando revisen tus reportes.</p>
+    </div>
+    <button type="button" class="btn btn-secondary btn-sm" data-push-toggle hidden>{% icono "bell" "icon-sm" %} <span>Activar</span></button>
+</div>
+<div class="banner mb-3" data-push-banner="ios-instalar" hidden>
+    {% icono "share" %}
+    <div class="banner-body">
+        <strong>En iPhone, instala la app primero</strong>
+        <span class="small">En Safari toca <b>Compartir</b> y luego <b>Agregar a inicio</b>; abre MARVELEC desde ese ícono.</span>
+    </div>
+</div>
+
+{% include "marvelec_app/partials/notificaciones_lista.html" %}
+{% endblock %}

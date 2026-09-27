@@ -1,0 +1,76 @@
+{% extends "layouts/escritorio.html" %}
+{% load static marvelec_tags %}
+{% block title %}Trabajadores - MARVELEC{% endblock %}
+{% block page_title %}Desempeño por trabajador{% endblock %}
+{% block page_subtitle %}{% if filtros.desde %}{{ filtros.desde|date:"d-m-Y" }}{% else %}Inicio{% endif %} al {% if filtros.hasta %}{{ filtros.hasta|date:"d-m-Y" }}{% else %}hoy{% endif %} · base para bonificaciones{% endblock %}
+{% block topbar_actions %}
+<a class="btn btn-secondary hide-mobile" href="{% url 'marvelec_app:exportar_excel' %}?{{ querystring }}">{% icono "download" "icon-sm" %} Excel</a>
+{% endblock %}
+{% block content %}
+<div class="stack">
+    {% include "marvelec_app/partials/filtros.html" with con_fechas=True %}
+
+    <div class="banner banner-info">
+        {% icono "info" %}
+        <div class="banner-body small">
+            <strong>¿Cómo se calcula?</strong>
+            Una <b>jornada</b> es un día distinto con al menos un reporte. <b>Puntos por jornada</b> = puntos del período ÷ jornadas.
+            Considera todos los reportes del período; el % aprobado indica cuánto está validado por supervisión.
+        </div>
+    </div>
+
+    <div class="card card-flush">
+        <div class="table-wrap">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Trabajador</th>
+                        <th>Puntos por jornada</th>
+                        <th class="t-right">Puntos</th>
+                        <th class="t-right">Jornadas</th>
+                        <th class="t-right">Reportes</th>
+                        <th class="t-right">% aprobado</th>
+                        <th>Último reporte</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for r in ranking %}
+                    <tr class="is-link" data-href="{% url 'marvelec_app:lista_reportes' %}?trabajador={{ r.id }}{% if filtros.desde %}&desde={{ filtros.desde|date:'Y-m-d' }}{% endif %}{% if filtros.hasta %}&hasta={{ filtros.hasta|date:'Y-m-d' }}{% endif %}">
+                        <td class="muted num">{{ forloop.counter }}</td>
+                        <td><span class="person"><span class="avatar">{{ r.nombre|slice:":1" }}</span><b>{{ r.nombre }}</b></span></td>
+                        <td>
+                            <div class="bar-cell">
+                                <span class="bar"><i style="width:{{ r.puntos_jornada|porcentaje:max_puntos_jornada }}%"></i></span>
+                                <b class="num">{{ r.puntos_jornada }}</b>
+                            </div>
+                        </td>
+                        <td class="t-right num">{{ r.puntos }}</td>
+                        <td class="t-right num">{{ r.jornadas }}</td>
+                        <td class="t-right num">{{ r.reportes }}{% if r.observados %} <span class="badge badge-observado" title="Observados">{{ r.observados }}</span>{% endif %}</td>
+                        <td class="t-right num">{{ r.pct_aprobados }}%</td>
+                        <td class="small muted nowrap">{% if r.ultimo %}hace {{ r.ultimo|timesince }}{% else %}—{% endif %}</td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="8"><div class="empty">{% icono "users" %}No hay reportes en el período.</div></td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    {% if sin_actividad %}
+    <section class="card">
+        <div class="card-header"><h3>{% icono "alert" %} Sin reportes en el período</h3><span class="badge badge-pendiente">{{ sin_actividad|length }}</span></div>
+        <div class="chips">
+            {% for p in sin_actividad %}
+            <span class="chip"><span class="avatar">{{ p.usuario|iniciales }}</span>{{ p.usuario|nombre_usuario }}{% if p.obra_asignada and not obra_fija %} <span class="muted">· {{ p.obra_asignada }}</span>{% endif %}</span>
+            {% endfor %}
+        </div>
+    </section>
+    {% endif %}
+</div>
+{% endblock %}
+{% block page_scripts %}
+<script src="{% static 'marvelec_app/js/supervision.js' %}"></script>
+{% endblock %}

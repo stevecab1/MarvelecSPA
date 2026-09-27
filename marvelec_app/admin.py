@@ -3,7 +3,10 @@ from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.contrib.auth.models import User
 from django.utils.html import format_html
 from django.db.models import Sum
-from .models import Obra, Subetapa, PerfilTrabajador, ReporteAvance, RegistroPunto, SuscripcionPush
+from .models import (
+    Obra, Subetapa, PerfilTrabajador, ReporteAvance, RegistroPunto, SuscripcionPush, Notificacion,
+    ResumenDiarioEnviado,
+)
 
 
 # ---------- OBRA + SUBETAPAS ----------
@@ -92,14 +95,16 @@ class RegistroPuntoInline(admin.TabularInline):
 
 
 class ReporteAvanceAdmin(admin.ModelAdmin):
-    list_display = ('__str__', 'trabajador', 'obra', 'subetapa', 'total_puntos', 'fecha_hora', 'ver_miniatura')
-    readonly_fields = ('total_puntos', 'fecha_hora', 'ver_foto_grande')
-    list_filter = ('obra', 'subetapa', 'fecha_hora', 'trabajador')
+    list_display = ('__str__', 'trabajador', 'obra', 'subetapa', 'total_puntos', 'estado',
+                    'fecha_hora', 'ver_miniatura')
+    readonly_fields = ('total_puntos', 'ver_foto_grande', 'revisado_en', 'enviado_offline')
+    list_filter = ('estado', 'obra', 'subetapa', 'fecha_hora', 'trabajador')
     search_fields = ('trabajador__username', 'obra__nombre', 'subetapa__nombre')
     date_hierarchy = 'fecha_hora'
     inlines = [RegistroPuntoInline]
     fields = ('trabajador', 'obra', 'subetapa', 'comentario',
-              'foto_llegada', 'ver_foto_grande', 'total_puntos', 'fecha_hora')
+              'foto_llegada', 'ver_foto_grande', 'total_puntos', 'fecha_hora',
+              'estado', 'revisado_por', 'revisado_en', 'comentario_revision', 'enviado_offline')
 
     def ver_miniatura(self, obj):
         if obj.foto_llegada:
@@ -130,6 +135,15 @@ admin.site.register(Subetapa, SubetapaAdmin)
 admin.site.register(PerfilTrabajador, PerfilTrabajadorAdmin)
 admin.site.register(ReporteAvance, ReporteAvanceAdmin)
 admin.site.register(SuscripcionPush)
+admin.site.register(ResumenDiarioEnviado)
+
+
+@admin.register(Notificacion)
+class NotificacionAdmin(admin.ModelAdmin):
+    list_display = ('titulo', 'usuario', 'tipo', 'leida', 'creada')
+    list_filter = ('tipo', 'leida')
+    search_fields = ('titulo', 'cuerpo', 'usuario__username')
+    raw_id_fields = ('reporte',)
 
 admin.site.site_header = "MARVELEC SPA - Administración"
 admin.site.site_title = "MARVELEC SPA"

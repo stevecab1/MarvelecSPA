@@ -1,0 +1,99 @@
+{% extends "layouts/escritorio.html" %}
+{% load static marvelec_tags %}
+{% block title %}Reporte #{{ reporte.pk }} - MARVELEC{% endblock %}
+{% block page_title %}Reporte #{{ reporte.pk }}{% endblock %}
+{% block page_subtitle %}{{ reporte.obra.nombre }} / {{ reporte.subetapa.nombre }}{% endblock %}
+{% block topbar_actions %}
+{% if siguiente_pendiente %}
+<a href="{% url 'marvelec_app:reporte_detalle' siguiente_pendiente.pk %}" class="btn btn-secondary btn-sm hide-mobile">Siguiente pendiente {% icono "chevron-right" "icon-sm" %}</a>
+{% endif %}
+{% endblock %}
+{% block content %}
+<div class="detalle">
+    <div class="stack">
+        {% if reporte.foto_llegada %}
+        <div class="detalle-foto" data-lightbox="{{ reporte.foto_llegada.url }}"
+             data-caption="{{ reporte.nombre_trabajador }} — {{ reporte.fecha_hora|date:'d-m-Y H:i' }}">
+            <img src="{{ reporte.foto_llegada.url }}" alt="Foto de llegada">
+        </div>
+        <div class="row">
+            <a href="{{ reporte.foto_llegada.url }}" download class="btn btn-secondary btn-sm">{% icono "download" "icon-sm" %} Descargar foto</a>
+        </div>
+        {% else %}
+        <div class="card empty">{% icono "image" %}<p>Este reporte no tiene foto de llegada.</p></div>
+        {% endif %}
+
+        {% if reporte.comentario %}
+        <section class="card">
+            <h3 class="mb-2">{% icono "message" "icon-sm" %} Comentario del trabajador</h3>
+            <p>{{ reporte.comentario|linebreaksbr }}</p>
+        </section>
+        {% endif %}
+    </div>
+
+    <div class="stack">
+        <section class="card">
+            <div class="row-between mb-3">
+                <span class="person">
+                    <span class="avatar">{{ reporte.trabajador|iniciales }}</span>
+                    <span><b>{{ reporte.nombre_trabajador }}</b><small>{{ reporte.fecha_hora|date:"l d-m-Y, H:i" }}</small></span>
+                </span>
+                {% include "marvelec_app/partials/estado_badge.html" %}
+            </div>
+            <dl class="dl">
+                <dt>Obra</dt><dd>{{ reporte.obra.nombre }}</dd>
+                <dt>Subetapa</dt><dd>{{ reporte.subetapa.nombre }}</dd>
+                <dt>Total</dt><dd><span class="pts">{{ reporte.total_puntos }} puntos</span></dd>
+                {% if reporte.enviado_offline %}<dt>Envío</dt><dd><span class="badge badge-offline">Guardado sin señal y enviado después</span></dd>{% endif %}
+            </dl>
+            <div class="puntos-grid mt-3">
+                <div class="punto-box tipo-red"><b>{{ puntos.red }}</b><span>Red</span></div>
+                <div class="punto-box tipo-fuerza"><b>{{ puntos.fuerza }}</b><span>Fuerza</span></div>
+                <div class="punto-box tipo-iluminacion"><b>{{ puntos.iluminacion }}</b><span>Iluminación</span></div>
+            </div>
+        </section>
+
+        {% if puede_revisar %}
+        <section class="card">
+            <h3 class="mb-2">Revisión</h3>
+            {% if reporte.estado != "pendiente" %}
+            <p class="muted small mb-2">Este reporte ya fue {{ reporte.get_estado_display|lower }}. Puedes cambiar la revisión si es necesario.</p>
+            {% endif %}
+            <form method="post" action="{% url 'marvelec_app:revisar_reporte' reporte.pk %}" class="stack">
+                {% csrf_token %}
+                <input type="hidden" name="next" value="{% if siguiente_pendiente and reporte.estado == 'pendiente' %}{% url 'marvelec_app:reporte_detalle' siguiente_pendiente.pk %}{% else %}{{ request.path }}{% endif %}">
+                <div class="field">
+                    <label for="{{ revision_form.comentario.id_for_label }}">Observación (obligatoria para observar)</label>
+                    {{ revision_form.comentario }}
+                </div>
+                <div class="row">
+                    <button type="submit" name="accion" value="aprobar" class="btn btn-success">{% icono "check" "icon-sm" %} Aprobar</button>
+                    <button type="submit" name="accion" value="observar" class="btn btn-warn">{% icono "message" "icon-sm" %} Observar</button>
+                </div>
+            </form>
+        </section>
+        {% endif %}
+
+        <section class="card">
+            <h3 class="mb-3">Historial</h3>
+            <div class="timeline">
+                <div class="timeline-item">
+                    <b>Reporte enviado</b> por {{ reporte.nombre_trabajador }}
+                    <time>{{ reporte.fecha_hora|date:"d-m-Y H:i" }}</time>
+                </div>
+                {% if reporte.revisado_en %}
+                <div class="timeline-item" style="--c: {% if reporte.estado == 'observado' %}var(--danger){% elif reporte.estado == 'aprobado' %}var(--ok){% else %}var(--warn){% endif %}">
+                    {% if reporte.estado == "pendiente" %}
+                    <b>Corregido</b> por el trabajador tras la observación de {{ reporte.revisado_por|nombre_usuario }}
+                    {% else %}
+                    <b>{{ reporte.get_estado_display }}</b>{% if reporte.revisado_por %} por {{ reporte.revisado_por|nombre_usuario }}{% endif %}
+                    {% endif %}
+                    <time>{{ reporte.revisado_en|date:"d-m-Y H:i" }}</time>
+                    {% if reporte.comentario_revision %}<p class="small mt-1">“{{ reporte.comentario_revision }}”</p>{% endif %}
+                </div>
+                {% endif %}
+            </div>
+        </section>
+    </div>
+</div>
+{% endblock %}

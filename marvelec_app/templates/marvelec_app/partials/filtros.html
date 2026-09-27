@@ -1,0 +1,56 @@
+{% load marvelec_tags %}
+{{ subetapas_por_obra|json_script:"filtro-subetapas" }}
+<form method="get" class="card filters" data-filtros>
+    {% if con_fechas %}
+    <div class="field">
+        <label for="f-desde">Desde</label>
+        <input type="date" name="desde" id="f-desde" value="{{ filtros.desde|date:'Y-m-d' }}">
+    </div>
+    <div class="field">
+        <label for="f-hasta">Hasta</label>
+        <input type="date" name="hasta" id="f-hasta" value="{{ filtros.hasta|date:'Y-m-d' }}">
+    </div>
+    {% endif %}
+    {% if not obra_fija %}
+    <div class="field">
+        <label for="f-obra">Obra</label>
+        <select name="obra" id="f-obra">
+            <option value="">Todas las obras</option>
+            {% for obra in obras_disponibles %}
+            <option value="{{ obra.id }}" {% if filtros.obra == obra.id %}selected{% endif %}>{{ obra.nombre }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    {% endif %}
+    <div class="field">
+        <label for="f-subetapa">Subetapa</label>
+        <select name="subetapa" id="f-subetapa" data-seleccion="{{ filtros.subetapa|default:'' }}"
+                data-obra-fija="{% if obra_fija %}{{ perfil_app.obra_asignada_id }}{% endif %}">
+            <option value="">Todas</option>
+        </select>
+    </div>
+    <div class="field">
+        <label for="f-trabajador">Trabajador</label>
+        <select name="trabajador" id="f-trabajador">
+            <option value="">Todos</option>
+            {% for p in trabajadores_disponibles %}
+            <option value="{{ p.usuario_id }}" {% if filtros.trabajador == p.usuario_id %}selected{% endif %}>{{ p.usuario|nombre_usuario }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    {% if con_estado %}
+    <div class="field">
+        <label for="f-estado">Estado</label>
+        <select name="estado" id="f-estado">
+            <option value="">Todos</option>
+            {% for valor, etiqueta in estados %}
+            <option value="{{ valor }}" {% if filtros.estado == valor %}selected{% endif %}>{{ etiqueta }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    {% endif %}
+    <div class="filters-actions">
+        <button type="submit" class="btn">{% icono "filter" "icon-sm" %} Filtrar</button>
+        <a href="{{ request.path }}" class="btn btn-ghost" title="Limpiar filtros">{% icono "x" "icon-sm" %}</a>
+    </div>
+</form>

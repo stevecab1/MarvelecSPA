@@ -1,0 +1,21 @@
+{% load marvelec_tags %}
+<a href="{% url 'marvelec_app:reporte_detalle' reporte.pk %}" class="r-card">
+    {% if reporte.foto_llegada %}
+    <img class="r-thumb" src="{{ reporte.foto_llegada.url }}" alt="" loading="lazy">
+    {% else %}
+    <div class="r-thumb">{% icono "image" %}</div>
+    {% endif %}
+    <div class="r-body">
+        <div class="r-top">
+            <span class="r-title">{{ reporte.subetapa.nombre }}</span>
+            {% include "marvelec_app/partials/estado_badge.html" %}
+        </div>
+        <div class="r-meta">
+            <span>{% icono "clock" "icon-sm" %} {{ reporte.fecha_hora|date:"D d M, H:i" }}</span>
+            <span class="pts">{{ reporte.total_puntos }} pts</span>
+        </div>
+        {% if reporte.estado == "observado" and reporte.comentario_revision %}
+        <div class="r-note">{{ reporte.comentario_revision|truncatechars:120 }}</div>
+        {% endif %}
+    </div>
+</a>

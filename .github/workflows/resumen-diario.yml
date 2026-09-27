@@ -1,0 +1,28 @@
+# Envía el resumen diario de avance a supervisores y gerencia.
+# Render (plan gratuito) no tiene tareas programadas, así que GitHub Actions llama al sitio cada noche.
+#
+# Configurar en GitHub → Settings → Secrets and variables → Actions:
+#   MARVELEC_URL  → https://tu-app.onrender.com   (sin "/" al final)
+#   CRON_TOKEN    → el mismo valor de la variable CRON_TOKEN en Render
+name: Resumen diario
+
+on:
+  schedule:
+    # 01:00 UTC = 21:00 en Chile (horario de invierno) / 22:00 (horario de verano)
+    - cron: '0 1 * * *'
+  workflow_dispatch: {}
+
+jobs:
+  resumen:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Disparar resumen diario
+        env:
+          URL: ${{ secrets.MARVELEC_URL }}
+          TOKEN: ${{ secrets.CRON_TOKEN }}
+        run: |
+          # Reintentos: el servicio gratuito de Render puede tardar ~1 minuto en despertar.
+          curl --fail --silent --show-error \
+               --retry 5 --retry-delay 30 --retry-all-errors --max-time 120 \
+               -X POST -H "X-Cron-Token: $TOKEN" \
+               "$URL/tareas/resumen-diario/"

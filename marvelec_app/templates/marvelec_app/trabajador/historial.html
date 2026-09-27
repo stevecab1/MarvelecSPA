@@ -1,0 +1,39 @@
+{% extends "layouts/movil.html" %}
+{% load marvelec_tags %}
+{% block title %}Historial - MARVELEC{% endblock %}
+{% block content %}
+<div class="row-between mb-2">
+    <h1>Mis reportes</h1>
+    <span class="muted small">{{ pagina.paginator.count }} en total</span>
+</div>
+
+<div class="segmented mb-3" style="overflow-x:auto;max-width:100%">
+    <a href="?" class="{% if not estado %}is-active{% endif %}">Todos</a>
+    <a href="?estado=pendiente" class="{% if estado == 'pendiente' %}is-active{% endif %}">Pendientes</a>
+    <a href="?estado=aprobado" class="{% if estado == 'aprobado' %}is-active{% endif %}">Aprobados</a>
+    <a href="?estado=observado" class="{% if estado == 'observado' %}is-active{% endif %}">Observados</a>
+</div>
+
+<div class="banner banner-info mb-2" data-outbox-banner hidden>
+    {% icono "cloud-off" %}
+    <div class="banner-body"><strong><span data-outbox-n></span> por enviar</strong></div>
+    <button type="button" class="btn btn-secondary btn-sm" data-outbox-enviar>{% icono "upload" "icon-sm" %} Enviar</button>
+</div>
+
+<div class="r-list">
+    {% if not estado %}<div class="r-list" data-outbox-lista hidden></div>{% endif %}
+    {% for reporte in pagina %}
+        {% include "marvelec_app/partials/reporte_card.html" %}
+    {% empty %}
+    <div class="card empty">{% icono "inbox" %}<p>No hay reportes aquí.</p></div>
+    {% endfor %}
+</div>
+
+{% if pagina.has_other_pages %}
+<div class="row-between mt-3">
+    {% if pagina.has_previous %}<a class="btn btn-secondary" href="{% qs page=pagina.previous_page_number %}">{% icono "chevron-left" %} Anteriores</a>{% else %}<span></span>{% endif %}
+    <span class="muted small">Página {{ pagina.number }} de {{ pagina.paginator.num_pages }}</span>
+    {% if pagina.has_next %}<a class="btn btn-secondary" href="{% qs page=pagina.next_page_number %}">Siguientes {% icono "chevron-right" %}</a>{% else %}<span></span>{% endif %}
+</div>
+{% endif %}
+{% endblock %}

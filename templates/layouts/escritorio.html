@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% load static marvelec_tags %}
+{% block body_class %}app-escritorio{% endblock %}
+{% block layout %}
+{% with vista=request.resolver_match.url_name %}
+<aside class="sidebar" id="sidebar">
+    <a href="{% url 'marvelec_app:panel_supervision' %}" class="sidebar-brand">
+        <img src="{% static 'marvelec_app/icons/icon-96x96.png' %}" alt="">
+        <span><strong>MARVELEC</strong><small>Control de avance</small></span>
+    </a>
+    <nav class="nav" aria-label="Navegación principal">
+        <a href="{% url 'marvelec_app:panel_supervision' %}" class="{% if vista == 'panel_supervision' %}is-active{% endif %}">{% icono "chart" %} Resumen</a>
+        <a href="{% url 'marvelec_app:cola_revision' %}" class="{% if vista == 'cola_revision' %}is-active{% endif %}">
+            {% icono "inbox" %} Por revisar
+            {% if pendientes_revision %}<span class="nav-count" data-pendientes-count>{{ pendientes_revision }}</span>{% endif %}
+        </a>
+        <a href="{% url 'marvelec_app:lista_reportes' %}" class="{% if vista == 'lista_reportes' or vista == 'reporte_detalle' %}is-active{% endif %}">{% icono "file" %} Reportes</a>
+        <a href="{% url 'marvelec_app:trabajadores' %}" class="{% if vista == 'trabajadores' %}is-active{% endif %}">{% icono "users" %} Trabajadores</a>
+        <a href="{% url 'marvelec_app:notificaciones' %}" class="{% if vista == 'notificaciones' %}is-active{% endif %}">
+            {% icono "bell" %} Avisos
+            <span class="nav-count" data-notif-count {% if not no_leidas %}hidden{% endif %}>{{ no_leidas }}</span>
+        </a>
+        {% if user.is_staff %}
+        <div class="nav-label">Configuración</div>
+        <a href="/admin/">{% icono "settings" %} Administración</a>
+        {% endif %}
+    </nav>
+    <div class="sidebar-foot">
+        <button type="button" class="btn btn-ghost btn-sm" data-push-toggle hidden>
+            {% icono "bell" "icon-sm" %} <span>Activar notificaciones</span>
+        </button>
+        <div class="sidebar-user">
+            <span class="avatar">{{ user|iniciales }}</span>
+            <span>
+                <b>{{ user|nombre_usuario }}</b>
+                <small>{{ perfil_app.get_rol_display }}{% if perfil_app.obra_asignada %} · {{ perfil_app.obra_asignada }}{% endif %}</small>
+            </span>
+        </div>
+        <form method="post" action="{% url 'marvelec_app:logout' %}">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-ghost btn-sm btn-block">{% icono "logout" "icon-sm" %} Cerrar sesión</button>
+        </form>
+    </div>
+</aside>
+<div class="sidebar-backdrop" data-sidebar-close hidden></div>
+
+<div class="d-main">
+    <header class="d-topbar">
+        <button type="button" class="btn btn-ghost btn-icon btn-menu" data-sidebar-open aria-label="Abrir menú">{% icono "menu" %}</button>
+        <h1>{% block page_title %}{% endblock %}<span class="sub">{% block page_subtitle %}{% endblock %}</span></h1>
+        {% block topbar_actions %}{% endblock %}
+        <div class="bell">
+            <button type="button" class="btn btn-ghost btn-icon" data-bell aria-label="Notificaciones" aria-expanded="false">
+                {% icono "bell" %}
+                <span class="bell-count" data-notif-count {% if not no_leidas %}hidden{% endif %}>{{ no_leidas }}</span>
+            </button>
+            <div class="notif-panel" data-bell-panel hidden>
+                <header>
+                    <b>Notificaciones</b>
+                    <button type="button" class="btn btn-ghost btn-sm" data-leer-todas>Marcar todo leído</button>
+                </header>
+                <div class="notif-list" data-notif-list>
+                    <div class="empty small">Cargando…</div>
+                </div>
+                <footer><a href="{% url 'marvelec_app:notificaciones' %}" class="btn btn-ghost btn-sm">Ver todas</a></footer>
+            </div>
+        </div>
+    </header>
+    <main class="d-content">
+        {% block content %}{% endblock %}
+    </main>
+</div>
+{% endwith %}
+{% endblock %}
+{% block scripts %}
+{% block page_scripts %}{% endblock %}
+{% endblock %}

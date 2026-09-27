@@ -1,0 +1,100 @@
+{% extends "layouts/movil.html" %}
+{% load marvelec_tags %}
+{% block title %}{% if reporte %}Corregir reporte{% else %}Nuevo reporte{% endif %} - MARVELEC{% endblock %}
+{% block content %}
+<div class="row-between mb-3">
+    <div>
+        <h1>{% if reporte %}Corregir reporte{% else %}Nuevo reporte{% endif %}</h1>
+        <p class="muted small">{% if reporte %}Del {{ reporte.fecha_hora|date:"d-m-Y H:i" }}{% else %}Llegada y avance del día{% endif %}</p>
+    </div>
+</div>
+
+{% if reporte and reporte.comentario_revision %}
+<div class="banner banner-danger mb-3">
+    {% icono "message" %}
+    <div class="banner-body">
+        <strong>Observación del supervisor</strong>
+        <span class="small">{{ reporte.comentario_revision }}</span>
+    </div>
+</div>
+{% endif %}
+
+{{ subetapas_por_obra|json_script:"subetapas-data" }}
+
+<form method="post" enctype="multipart/form-data" class="stack-lg" novalidate
+      data-reporte-form
+      data-modo="{% if reporte %}editar{% else %}nuevo{% endif %}"
+      data-api-url="{% url 'marvelec_app:api_crear_reporte' %}"
+      data-exito-url="{% url 'marvelec_app:panel_trabajador' %}">
+    {% csrf_token %}
+
+    {% if form.non_field_errors %}<div class="banner banner-danger">{{ form.non_field_errors }}</div>{% endif %}
+
+    <!-- 1. Dónde -->
+    <section class="card paso">
+        <div class="paso-titulo"><span class="paso-num">1</span> ¿Dónde estás trabajando?</div>
+        {% if perfil.obra_asignada %}
+        <input type="hidden" name="obra" value="{{ perfil.obra_asignada.pk }}" data-nombre="{{ perfil.obra_asignada.nombre }}">
+        <div class="row">{% icono "pin" %} <strong>{{ perfil.obra_asignada.nombre }}</strong></div>
+        {% else %}
+        <div class="field">
+            <label for="{{ form.obra.id_for_label }}">Obra</label>
+            {{ form.obra }}
+            {{ form.obra.errors }}
+        </div>
+        {% endif %}
+        <div class="field">
+            <label for="{{ form.subetapa.id_for_label }}">Subetapa (piso, ala o sector)</label>
+            {{ form.subetapa }}
+            {{ form.subetapa.errors }}
+        </div>
+    </section>
+
+    <!-- 2. Foto -->
+    <section class="card paso">
+        <div class="paso-titulo"><span class="paso-num">2</span> Foto de llegada</div>
+        <label class="foto-picker {% if reporte.foto_llegada %}has-foto{% endif %}">
+            {{ form.foto_llegada }}
+            {% icono "camera" %}
+            <strong>Tomar foto</strong>
+            <span class="small">Se abrirá la cámara del teléfono</span>
+            {% if reporte.foto_llegada %}
+            <img src="{{ reporte.foto_llegada.url }}" alt="Foto actual">
+            <span class="foto-cambiar">Cambiar foto</span>
+            {% endif %}
+        </label>
+        {{ form.foto_llegada.errors }}
+    </section>
+
+    <!-- 3. Puntos -->
+    <section class="card paso">
+        <div class="paso-titulo"><span class="paso-num">3</span> Puntos ejecutados</div>
+        {% for tipo, campo in puntos_form.filas %}
+        <div class="stepper-row tipo-{{ tipo }}">
+            <label class="stepper-label" for="{{ campo.id_for_label }}">
+                {{ campo.label }}
+                {% if campo.errors %}<small class="error">{{ campo.errors.0 }}</small>{% endif %}
+            </label>
+            <div class="stepper">
+                <button type="button" data-step="-1" aria-label="Restar uno">−</button>
+                {{ campo }}
+                <button type="button" data-step="1" aria-label="Sumar uno">+</button>
+            </div>
+        </div>
+        {% endfor %}
+        <div class="total-bar"><span>Total del reporte</span><b data-total>0</b></div>
+    </section>
+
+    <!-- 4. Comentario -->
+    <section class="card paso">
+        <div class="paso-titulo"><span class="paso-num">4</span> Comentarios o consultas</div>
+        {{ form.comentario }}
+    </section>
+
+    <div class="submit-bar">
+        <button type="submit" class="btn btn-lg btn-block">
+            {% icono "send" %} {% if reporte %}Enviar corrección{% else %}Enviar reporte{% endif %}
+        </button>
+    </div>
+</form>
+{% endblock %}

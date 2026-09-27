@@ -69,6 +69,14 @@ class PerfilTrabajador(models.Model):
     def es_supervisor_o_gerencia(self):
         return self.rol in (self.ROL_SUPERVISOR, self.ROL_GERENCIA)
 
+    def puede_revisar_obra(self, obra_id):
+        """Gerencia revisa todo; un supervisor sólo su obra (o todas si no tiene obra fija)."""
+        if self.rol == self.ROL_GERENCIA:
+            return True
+        if self.rol == self.ROL_SUPERVISOR:
+            return not self.obra_asignada_id or self.obra_asignada_id == obra_id
+        return False
+
 
 # --- REGISTRO DE AVANCE DIARIO ---
 
@@ -77,13 +85,36 @@ class ReporteAvance(models.Model):
     Reemplaza el mensaje de WhatsApp: un trabajador reporta su llegada a la obra,
     junto con los puntos ejecutados en el día en una subetapa determinada.
     """
+    ESTADO_PENDIENTE = 'pendiente'
+    ESTADO_APROBADO = 'aprobado'
+    ESTADO_OBSERVADO = 'observado'
+    ESTADO_CHOICES = [
+        (ESTADO_PENDIENTE, 'Pendiente de revisión'),
+        (ESTADO_APROBADO, 'Aprobado'),
+        (ESTADO_OBSERVADO, 'Observado'),
+    ]
+
     trabajador = models.ForeignKey(User, on_delete=models.PROTECT, related_name='reportes_avance')
     obra = models.ForeignKey(Obra, on_delete=models.PROTECT, related_name='reportes')
     subetapa = models.ForeignKey(Subetapa, on_delete=models.PROTECT, related_name='reportes')
-    fecha_hora = models.DateTimeField(auto_now_add=True)
+    # Hora en que el trabajador hizo el reporte (puede venir del celular si se envió sin señal).
+    fecha_hora = models.DateTimeField(default=timezone.now, db_index=True)
     foto_llegada = models.ImageField(upload_to='reportes/llegada/', blank=True, null=True)
     comentario = models.TextField(blank=True, verbose_name="Comentarios / consultas")
     total_puntos = models.PositiveIntegerField(default=0, editable=False)
+
+    # --- Revisión del supervisor ---
+    estado = models.CharField(max_length=20, choices=ESTADO_CHOICES, default=ESTADO_PENDIENTE, db_index=True)
+    revisado_por = models.ForeignKey(
+        User, on_delete=models.SET_NULL, null=True, blank=True, related_name='reportes_revisados'
+    )
+    revisado_en = models.DateTimeField(null=True, blank=True)
+    comentario_revision = models.TextField(blank=True, verbose_name="Observación del supervisor")
+
+    # --- Envío desde el celular ---
+    # Identificador generado en el celular: evita duplicados si un envío sin señal se reintenta.
+    uuid_cliente = models.UUIDField(null=True, blank=True, unique=True, editable=False)
+    enviado_offline = models.BooleanField(default=False, verbose_name="¿Enviado sin conexión?")
 
     class Meta:
         verbose_name = "Reporte de Avance"
@@ -104,6 +135,43 @@ class ReporteAvance(models.Model):
         if total != self.total_puntos:
             self.total_puntos = total
             self.save(update_fields=['total_puntos'])
+
+    def puntos_por_tipo(self):
+        """Devuelve {'red': n, 'fuerza': n, 'iluminacion': n} (usa registros precargados si existen)."""
+        conteo = {tipo: 0 for tipo, _ in RegistroPunto.TIPO_CHOICES}
+        for registro in self.registros.all():
+            conteo[registro.tipo_punto] = conteo.get(registro.tipo_punto, 0) + registro.cantidad
+        return conteo
+
+    # --- Revisión ---
+    def aprobar(self, usuario):
+        self.estado = self.ESTADO_APROBADO
+        self.revisado_por = usuario
+        self.revisado_en = timezone.now()
+        self.comentario_revision = ''
+        self.save(update_fields=['estado', 'revisado_por', 'revisado_en', 'comentario_revision'])
+
+    def observar(self, usuario, comentario):
+        self.estado = self.ESTADO_OBSERVADO
+        self.revisado_por = usuario
+        self.revisado_en = timezone.now()
+        self.comentario_revision = comentario
+        self.save(update_fields=['estado', 'revisado_por', 'revisado_en', 'comentario_revision'])
+
+    # --- Permisos ---
+    def puede_ver(self, perfil):
+        """El autor, gerencia, y supervisores de la obra (o sin obra fija) pueden ver el reporte."""
+        if self.trabajador_id == perfil.usuario_id:
+            return True
+        return perfil.puede_revisar_obra(self.obra_id)
+
+    def puede_editar(self, usuario):
+        """Sólo el autor puede corregir su reporte, y sólo si fue observado."""
+        return self.trabajador_id == usuario.id and self.estado == self.ESTADO_OBSERVADO
+
+    @property
+    def nombre_trabajador(self):
+        return self.trabajador.get_full_name() or self.trabajador.username
 
     def __str__(self):
         fecha_str = self.fecha_hora.strftime('%d/%m/%Y') if self.fecha_hora else 'N/A'
@@ -149,3 +217,56 @@ class SuscripcionPush(models.Model):
 
     def __str__(self):
         return f"Push {self.usuario.username} ({self.endpoint[:40]}...)"
+
+
+# --- CENTRO DE NOTIFICACIONES ---
+
+class Notificacion(models.Model):
+    """Aviso dentro de la app (campanita). Además se envía como push si el usuario lo activó."""
+    TIPO_NUEVO_REPORTE = 'nuevo_reporte'
+    TIPO_REPORTE_CORREGIDO = 'reporte_corregido'
+    TIPO_REPORTE_APROBADO = 'reporte_aprobado'
+    TIPO_REPORTE_OBSERVADO = 'reporte_observado'
+    TIPO_RESUMEN_DIARIO = 'resumen_diario'
+    TIPO_CHOICES = [
+        (TIPO_NUEVO_REPORTE, 'Nuevo reporte'),
+        (TIPO_REPORTE_CORREGIDO, 'Reporte corregido'),
+        (TIPO_REPORTE_APROBADO, 'Reporte aprobado'),
+        (TIPO_REPORTE_OBSERVADO, 'Reporte observado'),
+        (TIPO_RESUMEN_DIARIO, 'Resumen diario'),
+    ]
+
+    usuario = models.ForeignKey(User, on_delete=models.CASCADE, related_name='notificaciones')
+    tipo = models.CharField(max_length=30, choices=TIPO_CHOICES)
+    titulo = models.CharField(max_length=150)
+    cuerpo = models.TextField(blank=True)
+    url = models.CharField(max_length=255, blank=True)
+    reporte = models.ForeignKey(
+        ReporteAvance, on_delete=models.CASCADE, null=True, blank=True, related_name='notificaciones'
+    )
+    leida = models.BooleanField(default=False)
+    creada = models.DateTimeField(auto_now_add=True, db_index=True)
+
+    class Meta:
+        verbose_name = "Notificación"
+        verbose_name_plural = "Notificaciones"
+        ordering = ['-creada']
+        indexes = [models.Index(fields=['usuario', 'leida'])]
+
+    def __str__(self):
+        return f"{self.usuario.username}: {self.titulo}"
+
+
+class ResumenDiarioEnviado(models.Model):
+    """Registro de resúmenes diarios enviados: evita mandar dos veces el mismo día."""
+    fecha = models.DateField(unique=True)
+    enviado_en = models.DateTimeField(auto_now_add=True)
+    destinatarios = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        verbose_name = "Resumen diario enviado"
+        verbose_name_plural = "Resúmenes diarios enviados"
+        ordering = ['-fecha']
+
+    def __str__(self):
+        return f"Resumen {self.fecha:%d-%m-%Y} ({self.destinatarios} destinatarios)"

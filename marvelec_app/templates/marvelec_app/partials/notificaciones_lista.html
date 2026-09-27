@@ -1,0 +1,26 @@
+{% load marvelec_tags %}
+<div class="card card-flush notif-page">
+    {% for n in pagina %}
+    <form method="post" action="{% url 'marvelec_app:notificacion_leer' n.pk %}">
+        {% csrf_token %}
+        <button type="submit" class="notif {% if not n.leida %}is-unread{% endif %}">
+            <span class="notif-icon t-{{ n.tipo }}">
+                {% if n.tipo == "reporte_aprobado" %}{% icono "check-circle" %}{% elif n.tipo == "reporte_observado" %}{% icono "alert" %}{% elif n.tipo == "resumen_diario" %}{% icono "chart" %}{% elif n.tipo == "reporte_corregido" %}{% icono "edit" %}{% else %}{% icono "file" %}{% endif %}
+            </span>
+            <span class="notif-body">
+                <b>{{ n.titulo }}</b>
+                <p>{{ n.cuerpo }}</p>
+                <time datetime="{{ n.creada|date:'c' }}">hace {{ n.creada|timesince }}</time>
+            </span>
+        </button>
+    </form>
+    {% empty %}
+    <div class="empty">{% icono "bell" %}<p>No tienes notificaciones todavía.</p></div>
+    {% endfor %}
+</div>
+{% if pagina.has_other_pages %}
+<div class="row-between mt-2">
+    {% if pagina.has_previous %}<a class="btn btn-secondary btn-sm" href="{% qs page=pagina.previous_page_number %}">Anteriores</a>{% else %}<span></span>{% endif %}
+    {% if pagina.has_next %}<a class="btn btn-secondary btn-sm" href="{% qs page=pagina.next_page_number %}">Siguientes</a>{% endif %}
+</div>
+{% endif %}

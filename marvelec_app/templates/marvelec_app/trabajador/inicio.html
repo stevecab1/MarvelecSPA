@@ -1,0 +1,73 @@
+{% extends "layouts/movil.html" %}
+{% load marvelec_tags %}
+{% block title %}Inicio - MARVELEC{% endblock %}
+{% block content %}
+<div class="stack">
+    <section class="hero">
+        <p>{{ hoy|date:"l j \d\e F" }}</p>
+        <h1>Hola, {{ user.first_name|default:user.username }}</h1>
+        <div class="hero-stats">
+            <div class="hero-stat"><b>{{ puntos_hoy }}</b><span>puntos hoy</span></div>
+            <div class="hero-stat"><b>{{ puntos_semana }}</b><span>puntos semana</span></div>
+            <div class="hero-stat"><b>{{ reportes_semana }}</b><span>reportes semana</span></div>
+        </div>
+        <a href="{% url 'marvelec_app:nuevo_reporte' %}" class="btn btn-accent btn-lg btn-block">
+            {% icono "camera" %} {% if reporto_hoy %}Nuevo reporte{% else %}Reportar llegada y avance{% endif %}
+        </a>
+    </section>
+
+    <!-- Reportes guardados sin señal -->
+    <div class="banner banner-info" data-outbox-banner hidden>
+        {% icono "cloud-off" %}
+        <div class="banner-body">
+            <strong><span data-outbox-n></span> por enviar</strong>
+            <span class="small">Se enviarán solos cuando haya señal.</span>
+        </div>
+        <button type="button" class="btn btn-secondary btn-sm" data-outbox-enviar>{% icono "upload" "icon-sm" %} Enviar</button>
+    </div>
+
+    <!-- Activar notificaciones -->
+    <div class="banner" data-push-banner="inactivo" hidden>
+        {% icono "bell" %}
+        <div class="banner-body">
+            <strong>Activa las notificaciones</strong>
+            <span class="small">Te avisamos cuando tu supervisor revise tus reportes.</span>
+        </div>
+        <button type="button" class="btn btn-sm" data-push-activar>Activar</button>
+    </div>
+    <div class="banner" data-push-banner="ios-instalar" hidden>
+        {% icono "share" %}
+        <div class="banner-body">
+            <strong>Instala la app para recibir avisos</strong>
+            <span class="small">En Safari toca <b>Compartir</b> y luego <b>Agregar a inicio</b>. Abre MARVELEC desde ese ícono.</span>
+        </div>
+    </div>
+
+    {% for reporte in observados %}
+    <a href="{% url 'marvelec_app:reporte_detalle' reporte.pk %}" class="banner banner-danger" style="text-decoration:none">
+        {% icono "alert" %}
+        <div class="banner-body">
+            <strong>Reporte observado: {{ reporte.subetapa.nombre }} ({{ reporte.fecha_hora|date:"d-m" }})</strong>
+            <span class="small">{{ reporte.comentario_revision|truncatechars:90 }}</span>
+        </div>
+        {% icono "chevron-right" %}
+    </a>
+    {% endfor %}
+</div>
+
+<div class="section-title">
+    <h2>Últimos reportes</h2>
+    <a href="{% url 'marvelec_app:historial_trabajador' %}">Ver todos</a>
+</div>
+<div class="r-list">
+    <div class="r-list" data-outbox-lista hidden></div>
+    {% for reporte in recientes %}
+        {% include "marvelec_app/partials/reporte_card.html" %}
+    {% empty %}
+    <div class="card empty">
+        {% icono "file" %}
+        <p>Aún no tienes reportes.<br>Toca <b>Reportar</b> para enviar el primero.</p>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

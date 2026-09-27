@@ -1,96 +1,115 @@
 # MARVELEC SPA — Sistema de Reporte y Seguimiento de Avance
 
-Proyecto Django simplificado, inspirado en la arquitectura de un sistema anterior de
-gestión de bombas de combustible, adaptado al contexto de **MARVELEC SPA**
-(contratista de obra gruesa eléctrica).
+Reemplaza el flujo informal de WhatsApp de **MARVELEC SPA** (contratista de obra gruesa
+eléctrica). Es una sola aplicación web instalable (PWA) con dos experiencias:
 
-Reemplaza el flujo informal de WhatsApp: cada trabajador reporta su llegada a la obra,
-sube una foto y registra los **puntos ejecutados** (red / fuerza / iluminación) por
-**subetapa**. Supervisores y gerencia ven un panel consolidado, filtrable y exportable
-a Excel.
+- **App del trabajador (celular):** reporta su llegada con foto y los **puntos ejecutados**
+  (red / fuerza / iluminación) por **subetapa**. Funciona **sin señal**: el reporte queda
+  guardado en el teléfono y se envía solo al volver la conexión.
+- **Programa de supervisión (PC):** resumen con gráficos, cola de revisión para
+  **aprobar u observar** reportes, lista filtrable, ranking de **puntos por jornada** por
+  trabajador y exportación a Excel.
+- **Notificaciones:** centro de avisos (campanita) + **push** en celular y PC:
+  nuevo reporte → supervisor; aprobado/observado → trabajador; **resumen diario** con quién
+  no reportó.
 
-## 1. Requisitos
-
-- Python 3.11+ instalado
-- Visual Studio Code (recomendado, con la extensión oficial de Python)
-
-## 2. Instalación (Windows / macOS / Linux)
-
-Abre una terminal en la carpeta del proyecto y ejecuta:
+## 1. Instalación local
 
 ```bash
-# 1. Crear entorno virtual
 python -m venv venv
-
-# 2. Activarlo
-# Windows:
-venv\Scripts\activate
-# macOS/Linux:
-source venv/bin/activate
-
-# 3. Instalar dependencias
+venv\Scripts\activate            # Windows  (macOS/Linux: source venv/bin/activate)
 pip install -r requirements.txt
-
-# 4. Crear la base de datos (SQLite, no requiere instalar nada extra)
 python manage.py migrate
-
-# 5. Crear un usuario administrador (será tu primer usuario "gerencia")
 python manage.py createsuperuser
-
-# 6. Levantar el servidor
 python manage.py runserver
 ```
 
-Luego abre http://127.0.0.1:8000/ en el navegador.
+Abre http://127.0.0.1:8000/ (las notificaciones push y la instalación como app requieren
+`localhost` o HTTPS).
 
-## 3. Primeros pasos dentro del sistema
+## 2. Primeros pasos
 
-1. Entra a **/admin/** con el superusuario creado.
-2. Crea una **Obra** (ej. "Hospital Regional") y agrégale **Subetapas** (ej. "Piso 1",
-   "Piso 2 - Ala Norte") directamente desde la misma pantalla de la Obra.
-3. Edita el usuario superusuario (o crea nuevos usuarios) y en la sección
-   **"Perfil de Trabajador"** define su **rol** (Trabajador / Supervisor / Gerencia) y,
-   si corresponde, su **obra asignada**.
-4. Cierra sesión del admin y entra por **/login/** con un usuario de rol "Trabajador"
-   para ver el formulario de reporte diario.
-5. Entra con un usuario "Supervisor" o "Gerencia" para ver el panel consolidado y el
-   botón **"Exportar a Excel"**.
+1. Entra a **/admin/** y crea una **Obra** con sus **Subetapas**.
+2. Crea usuarios y, en **"Perfil de Trabajador"**, define su **rol** (Trabajador /
+   Supervisor / Gerencia) y su **obra asignada**.
+3. Con un trabajador, en el celular: *Reportar* → foto → puntos con los botones − / + → Enviar.
+4. Con un supervisor, en el PC: *Por revisar* → **Aprobar** (tecla `A`) u **Observar** (tecla `O`).
+5. En cada dispositivo toca **"Activar notificaciones"**. En iPhone primero hay que
+   instalar la app (Safari → Compartir → *Agregar a inicio*, iOS 16.4+).
 
-## 4. Estructura del proyecto
+## 3. Instalar como aplicación
+
+- **Android (Chrome):** menú ⋮ → *Instalar aplicación*.
+- **iPhone (Safari):** Compartir → *Agregar a inicio*.
+- **PC (Chrome / Edge):** ícono de instalar en la barra de direcciones. Queda como programa
+  con su propia ventana y avisos de escritorio.
+
+## 4. Despliegue en Render
+
+**Build command:** `./build.sh` · **Start command:** `gunicorn marvelec_project.wsgi:application`
+
+Variables de entorno:
+
+| Variable | Descripción |
+|---|---|
+| `SECRET_KEY` | Clave larga aleatoria |
+| `DJANGO_DEBUG` | `False` |
+| `DATABASE_URL` | La setea Render al conectar PostgreSQL |
+| `DJANGO_SUPERUSER_USERNAME` / `_PASSWORD` / `_EMAIL` | Superusuario inicial |
+| `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` | Claves de notificaciones push (ver abajo) |
+| `VAPID_CLAIM_EMAIL` | Correo de contacto para los servicios push (opcional) |
+| `CRON_TOKEN` | Texto secreto largo para el resumen diario |
+| `EMAIL_*`, `DEFAULT_FROM_EMAIL` | SMTP para correos de respaldo (opcional) |
+
+**Claves VAPID (obligatorio para push en producción).** Genéralas una sola vez en tu PC:
+
+```bash
+python manage.py generar_vapid
+```
+
+y pega ambas líneas en Render. Si no se configuran, el servidor genera claves nuevas en
+cada deploy y todos los dispositivos pierden las notificaciones hasta reactivarlas.
+
+**Resumen diario.** En GitHub → *Settings → Secrets and variables → Actions* crea
+`MARVELEC_URL` (ej. `https://marvelec.onrender.com`) y `CRON_TOKEN` (el mismo de Render).
+El workflow `.github/workflows/resumen-diario.yml` lo dispara cada noche (~21:00 Chile).
+También se puede enviar a mano: `python manage.py resumen_diario [--fecha 2026-09-27] [--forzar]`.
+
+## 5. Estructura
 
 ```
-marvelec_project/
-├── manage.py
-├── requirements.txt
-├── marvelec_project/       # Configuración global (settings, urls, wsgi/asgi)
-├── marvelec_app/           # App principal
-│   ├── models.py           # Obra, Subetapa, PerfilTrabajador, ReporteAvance, RegistroPunto
-│   ├── forms.py            # Formulario de reporte + formset de puntos
-│   ├── views.py            # Login, dashboards por rol, exportación a Excel
-│   ├── admin.py            # Panel de administración
-│   ├── signals.py          # Recalcula totales y crea perfiles automáticamente
-│   ├── urls.py
-│   ├── templates/
-│   └── static/
-└── templates/base.html     # Plantilla base compartida
+marvelec_app/
+├── models.py            # Obra, Subetapa, PerfilTrabajador, ReporteAvance (+ revisión),
+│                        # RegistroPunto, SuscripcionPush, Notificacion, ResumenDiarioEnviado
+├── views.py             # App trabajador, API offline, supervisión, detalle, Excel, avisos, PWA
+├── consultas.py         # Permisos por rol, filtros, KPIs, gráficos y ranking (reutilizables)
+├── servicios.py         # Crear / corregir / revisar reportes (atómico, idempotente)
+├── notificaciones.py    # Centro de avisos + envío push/correo en segundo plano
+├── resumen.py           # Resumen diario
+├── push.py              # Web Push (VAPID) y suscripciones
+├── management/commands/ # resumen_diario, generar_vapid
+├── templates/marvelec_app/
+│   ├── trabajador/      # inicio, nuevo_reporte, historial, detalle, avisos
+│   ├── supervision/     # resumen, revisar, reportes, trabajadores, avisos
+│   └── pwa/             # sw.js y manifest (servidos desde la raíz del sitio)
+└── static/marvelec_app/
+    ├── css/style.css    # Sistema de diseño (claro/oscuro, móvil y escritorio)
+    ├── js/              # app.js, trabajador.js, outbox.js (cola sin señal), supervision.js
+    └── vendor/          # Chart.js
+templates/
+├── base.html
+└── layouts/             # movil.html (barra inferior), escritorio.html (menú lateral)
 ```
 
-## 5. Modelo de datos (resumen)
+## 6. Tests
 
-- **Obra**: un proyecto en ejecución (ej. un hospital).
-- **Subetapa**: segmento dentro de una obra (piso, ala, sector).
-- **PerfilTrabajador**: rol del usuario (trabajador / supervisor / gerencia) y su obra.
-- **ReporteAvance**: un reporte diario (foto de llegada + comentario), con total de
-  puntos calculado automáticamente.
-- **RegistroPunto**: detalle de puntos ejecutados por tipo (red / fuerza / iluminación)
-  dentro de un reporte.
+```bash
+python manage.py test marvelec_app
+```
 
-## 6. Próximos pasos sugeridos (para el pilotaje / Hito 3)
+## 7. Pendientes conocidos
 
-- Restringir el formulario de reporte a **una vez por día por trabajador** si se
-  requiere evitar duplicados.
-- Agregar un indicador de **puntos por jornada por trabajador** en el panel de
-  gerencia (base para el sistema de bonificación).
-- Migrar la base de datos a PostgreSQL y desplegar en un servicio como Render o
-  Railway cuando el piloto pase a producción (basta con instalar `dj-database-url` y
-  leer `DATABASE_URL` desde variables de entorno, tal como en el proyecto anterior).
+- Las **fotos** se guardan en el disco de Render, que en el plan gratuito se borra al
+  redesplegar → integrar almacenamiento en la nube (Cloudinary, S3) para `MEDIA_ROOT`.
+- La **base de datos** PostgreSQL gratuita de Render expira a los 90 días.
+- Límite de un reporte por trabajador por día: se evaluará más adelante.

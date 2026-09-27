@@ -1,0 +1,64 @@
+{% extends "layouts/movil.html" %}
+{% load marvelec_tags %}
+{% block title %}Reporte - MARVELEC{% endblock %}
+{% block content %}
+<a href="{% url 'marvelec_app:historial_trabajador' %}" class="btn btn-ghost btn-sm mb-2">{% icono "chevron-left" "icon-sm" %} Mis reportes</a>
+
+<div class="stack">
+    <div class="row-between">
+        <div>
+            <h1>{{ reporte.subetapa.nombre }}</h1>
+            <p class="muted small">{{ reporte.obra.nombre }} · {{ reporte.fecha_hora|date:"l d-m-Y, H:i" }}</p>
+        </div>
+        {% include "marvelec_app/partials/estado_badge.html" %}
+    </div>
+
+    {% if reporte.estado == "observado" %}
+    <div class="banner banner-danger">
+        {% icono "alert" %}
+        <div class="banner-body">
+            <strong>Tu supervisor pidió una corrección</strong>
+            <span class="small">{{ reporte.comentario_revision }}</span>
+        </div>
+    </div>
+    {% if puede_editar %}
+    <a href="{% url 'marvelec_app:editar_reporte' reporte.pk %}" class="btn btn-lg btn-block">{% icono "edit" %} Corregir reporte</a>
+    {% endif %}
+    {% elif reporte.estado == "aprobado" %}
+    <div class="banner" style="background:var(--ok-bg);border:0">
+        <span style="color:var(--ok)">{% icono "check-circle" %}</span>
+        <div class="banner-body">
+            <strong>Aprobado</strong>
+            <span class="small">{% if reporte.revisado_por %}por {{ reporte.revisado_por|nombre_usuario }}, {% endif %}{{ reporte.revisado_en|date:"d-m-Y H:i" }}</span>
+        </div>
+    </div>
+    {% else %}
+    <div class="banner banner-warn">
+        {% icono "clock" %}
+        <div class="banner-body"><strong>Esperando revisión del supervisor</strong></div>
+    </div>
+    {% endif %}
+
+    {% if reporte.foto_llegada %}
+    <div class="detalle-foto" data-lightbox="{{ reporte.foto_llegada.url }}" data-caption="Foto de llegada">
+        <img src="{{ reporte.foto_llegada.url }}" alt="Foto de llegada">
+    </div>
+    {% endif %}
+
+    <div class="card">
+        <div class="card-header"><h3>Puntos ejecutados</h3><span class="pts">{{ reporte.total_puntos }} total</span></div>
+        <div class="puntos-grid">
+            <div class="punto-box tipo-red"><b>{{ puntos.red }}</b><span>Red</span></div>
+            <div class="punto-box tipo-fuerza"><b>{{ puntos.fuerza }}</b><span>Fuerza</span></div>
+            <div class="punto-box tipo-iluminacion"><b>{{ puntos.iluminacion }}</b><span>Iluminación</span></div>
+        </div>
+    </div>
+
+    {% if reporte.comentario %}
+    <div class="card">
+        <h3 class="mb-2">Tu comentario</h3>
+        <p>{{ reporte.comentario|linebreaksbr }}</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
