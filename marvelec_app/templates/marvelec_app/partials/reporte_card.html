@@ -1,7 +1,7 @@
 {% load marvelec_tags %}
 <a href="{% url 'marvelec_app:reporte_detalle' reporte.pk %}" class="r-card">
-    {% if reporte.foto_llegada %}
-    <img class="r-thumb" src="{{ reporte.foto_llegada.url }}" alt="" loading="lazy">
+    {% if reporte.foto %}
+    <img class="r-thumb" src="{{ reporte.foto.url }}" alt="" loading="lazy">
     {% else %}
     <div class="r-thumb">{% icono "image" %}</div>
     {% endif %}

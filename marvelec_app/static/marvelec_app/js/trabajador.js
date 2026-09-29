@@ -165,7 +165,7 @@
     pintarTotal();
 
     // --- Foto: vista previa + compresión (sube rápido con poca señal) ---
-    const fotoInput = form.querySelector('[name=foto_llegada]');
+    const fotoInput = form.querySelector('[name=foto]');
     const picker = form.querySelector('.foto-picker');
     let fotoLista = null; // Blob comprimido
 

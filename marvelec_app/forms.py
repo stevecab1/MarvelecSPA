@@ -4,18 +4,18 @@ from .models import Obra, Subetapa, ReporteAvance, RegistroPunto
 
 
 class ReporteAvanceForm(forms.ModelForm):
-    """Formulario que llena el trabajador al llegar a la obra."""
+    """Formulario de reporte de avance: subetapa, foto opcional y comentario."""
 
     class Meta:
         model = ReporteAvance
-        fields = ['obra', 'subetapa', 'foto_llegada', 'comentario']
+        fields = ['obra', 'subetapa', 'foto', 'comentario']
         widgets = {
             'comentario': forms.Textarea(attrs={
                 'rows': 3,
                 'placeholder': 'Comentarios, consultas o novedades del día (opcional)'
             }),
             # 'capture' abre directamente la cámara del celular en vez del explorador de archivos.
-            'foto_llegada': forms.FileInput(attrs={'capture': 'environment', 'accept': 'image/*'}),
+            'foto': forms.FileInput(attrs={'capture': 'environment', 'accept': 'image/*'}),
         }
 
     def __init__(self, *args, **kwargs):

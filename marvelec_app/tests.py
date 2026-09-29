@@ -1,5 +1,6 @@
 import io
 import json
+import tempfile
 import uuid
 from datetime import timedelta
 from unittest import mock
@@ -185,6 +186,24 @@ class CrearReporteTests(BaseEscenario):
                              self._datos_reporte(usuario_id=self.trab_a2.pk))
         self.assertEqual(r.status_code, 409)
         self.assertEqual(ReporteAvance.objects.count(), 0)
+
+    def _imagen(self):
+        from PIL import Image
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        buffer = io.BytesIO()
+        Image.new('RGB', (4, 4), 'purple').save(buffer, 'PNG')
+        return SimpleUploadedFile('foto.png', buffer.getvalue(), content_type='image/png')
+
+    def test_api_guarda_foto_del_avance_con_nombre_nuevo_y_antiguo(self):
+        """'foto_llegada' lo envían celulares con la versión anterior de la app en caché."""
+        self._login("trab_a")
+        with tempfile.TemporaryDirectory() as media, override_settings(MEDIA_ROOT=media):
+            for clave in ('foto', 'foto_llegada'):
+                r = self.client.post(reverse('marvelec_app:api_crear_reporte'),
+                                     self._datos_reporte(**{clave: self._imagen()}))
+                self.assertEqual(r.status_code, 201, clave)
+                reporte = ReporteAvance.objects.get(pk=r.json()['id'])
+                self.assertTrue(reporte.foto.name.startswith('reportes/avance/'), clave)
 
 
 class PermisosTests(BaseEscenario):
@@ -429,3 +448,41 @@ class PantallasTests(BaseEscenario):
         self.assertRedirects(r, reverse('marvelec_app:login') + '?salida=1')
         r = self.client.get(reverse('marvelec_app:panel'))
         self.assertRedirects(r, reverse('marvelec_app:login') + '?next=/panel/')
+
+
+class AdminTests(BaseEscenario):
+    """Panel de administración (tema Unfold)."""
+
+    def setUp(self):
+        super().setUp()
+        self.admin = User.objects.create_superuser('admin', 'admin@marvelec.cl', 'clave12345')
+
+    def test_listados_del_admin_cargan_con_totales(self):
+        self._reporte(red=2, fuerza=1)
+        self._reporte(trabajador=self.trab_b, obra=self.obra_b, sub=self.sub_b, ilum=4)
+        self._login('admin')
+        for nombre in ('admin:index', 'admin:auth_user_changelist', 'admin:auth_group_changelist'):
+            self.assertEqual(self.client.get(reverse(nombre)).status_code, 200, nombre)
+        for modelo in ('obra', 'subetapa', 'perfiltrabajador', 'reporteavance', 'notificacion',
+                       'suscripcionpush', 'resumendiarioenviado'):
+            r = self.client.get(reverse(f'admin:marvelec_app_{modelo}_changelist'))
+            self.assertEqual(r.status_code, 200, modelo)
+
+        r = self.client.get(reverse('admin:marvelec_app_obra_changelist'))
+        totales = {o.nombre: (o._n_subetapas, o._total_puntos) for o in r.context['cl'].result_list}
+        self.assertEqual(totales, {'Hospital A': (1, 3), 'Hospital B': (1, 4)})
+
+    def test_accion_aprobar_solo_pendientes_y_avisa_al_trabajador(self):
+        pendiente = self._reporte(red=2)
+        observado = self._reporte(red=1, estado=ReporteAvance.ESTADO_OBSERVADO)
+        self._login('admin')
+        self.client.post(reverse('admin:marvelec_app_reporteavance_changelist'), {
+            'action': 'aprobar_seleccionados', '_selected_action': [pendiente.pk, observado.pk],
+        })
+        pendiente.refresh_from_db()
+        observado.refresh_from_db()
+        self.assertEqual(pendiente.estado, ReporteAvance.ESTADO_APROBADO)
+        self.assertEqual(pendiente.revisado_por, self.admin)
+        self.assertEqual(observado.estado, ReporteAvance.ESTADO_OBSERVADO)
+        self.assertEqual(Notificacion.objects.filter(
+            usuario=self.trab_a, tipo=Notificacion.TIPO_REPORTE_APROBADO).count(), 1)

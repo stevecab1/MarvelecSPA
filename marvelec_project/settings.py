@@ -9,16 +9,21 @@ import sys
 import dj_database_url
 from pathlib import Path
 
+from django.core.exceptions import ImproperlyConfigured
+from django.templatetags.static import static
+from django.urls import reverse_lazy
+
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 TESTING = len(sys.argv) > 1 and sys.argv[1] == 'test'
 
-SECRET_KEY = os.environ.get(
-    'SECRET_KEY',
-    'dev-insecure-marvelec-k3y-c4mbi4r-en-produccion'
-)
-
 DEBUG = os.environ.get('DJANGO_DEBUG', 'True') == 'True'
+
+SECRET_KEY = os.environ.get('SECRET_KEY', '')
+if not SECRET_KEY:
+    if not DEBUG:
+        raise ImproperlyConfigured('Falta la variable de entorno SECRET_KEY (obligatoria en producción).')
+    SECRET_KEY = 'dev-insecure-marvelec-k3y-solo-desarrollo'
 
 ALLOWED_HOSTS = ['localhost', '127.0.0.1']
 
@@ -34,6 +39,9 @@ if extra_host:
 
 
 INSTALLED_APPS = [
+    # Tema del panel de administración (debe ir antes de django.contrib.admin).
+    'unfold',
+    'unfold.contrib.filters',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -163,4 +171,90 @@ EMAIL_PORT = int(os.environ.get('EMAIL_PORT', '587'))
 EMAIL_USE_TLS = os.environ.get('EMAIL_USE_TLS', 'True') == 'True'
 EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', '')
 EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', '')
-DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'MARVELEC SPA <>')
+DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL') or (
+    f'MARVELEC SPA <{EMAIL_HOST_USER or "notificaciones@marvelec.cl"}>'
+)
+
+
+# --- Panel de administración (django-unfold) ---
+def _admin_url(modelo):
+    return reverse_lazy(f'admin:{modelo}_changelist')
+
+
+UNFOLD = {
+    'SITE_TITLE': 'MARVELEC SPA',
+    'SITE_HEADER': 'MARVELEC SPA',
+    'SITE_SUBHEADER': 'Administración',
+    'SITE_URL': '/panel/',
+    'SITE_ICON': {
+        'light': lambda request: static('marvelec_app/icons/icon-96x96.png'),
+        'dark': lambda request: static('marvelec_app/icons/icon-96x96.png'),
+    },
+    'SITE_FAVICONS': [
+        {'rel': 'icon', 'sizes': '96x96', 'type': 'image/png',
+         'href': lambda request: static('marvelec_app/icons/icon-96x96.png')},
+    ],
+    # Morado MARVELEC (#3a288f = tono 600, el que Unfold usa en botones y enlaces).
+    'COLORS': {
+        'primary': {
+            '50': 'oklch(97% .014 290)',
+            '100': 'oklch(94% .03 289)',
+            '200': 'oklch(88.5% .058 287)',
+            '300': 'oklch(80% .1 286)',
+            '400': 'oklch(68% .155 285)',
+            '500': 'oklch(56% .195 284)',
+            '600': 'oklch(36.9% .16 283.2)',
+            '700': 'oklch(32.2% .143 282.6)',
+            '800': 'oklch(27% .116 282.6)',
+            '900': 'oklch(22% .095 282)',
+            '950': 'oklch(16% .07 282)',
+        },
+    },
+    'SIDEBAR': {
+        'show_search': True,
+        'show_all_applications': False,
+        'navigation': [
+            {
+                'title': 'Obras',
+                'items': [
+                    {'title': 'Obras', 'icon': 'apartment', 'link': _admin_url('marvelec_app_obra')},
+                    {'title': 'Subetapas', 'icon': 'layers', 'link': _admin_url('marvelec_app_subetapa')},
+                ],
+            },
+            {
+                'title': 'Personal',
+                'items': [
+                    {'title': 'Usuarios', 'icon': 'person', 'link': _admin_url('auth_user')},
+                    {'title': 'Perfiles y roles', 'icon': 'badge',
+                     'link': _admin_url('marvelec_app_perfiltrabajador')},
+                ],
+            },
+            {
+                'title': 'Reportes',
+                'items': [
+                    {'title': 'Reportes de avance', 'icon': 'assignment',
+                     'link': _admin_url('marvelec_app_reporteavance')},
+                ],
+            },
+            {
+                'title': 'Sistema',
+                'collapsible': True,
+                'items': [
+                    {'title': 'Notificaciones', 'icon': 'notifications',
+                     'link': _admin_url('marvelec_app_notificacion')},
+                    {'title': 'Suscripciones push', 'icon': 'phonelink_ring',
+                     'link': _admin_url('marvelec_app_suscripcionpush')},
+                    {'title': 'Resúmenes diarios', 'icon': 'summarize',
+                     'link': _admin_url('marvelec_app_resumendiarioenviado')},
+                    {'title': 'Grupos', 'icon': 'group', 'link': _admin_url('auth_group')},
+                ],
+            },
+            {
+                'title': 'Aplicación',
+                'items': [
+                    {'title': 'Volver a la app', 'icon': 'arrow_back', 'link': '/panel/'},
+                ],
+            },
+        ],
+    },
+}

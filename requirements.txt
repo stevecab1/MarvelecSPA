@@ -1,4 +1,5 @@
 Django>=5.0,<6.0
+django-unfold>=0.108,<0.109
 Pillow>=10.0
 openpyxl>=3.1
 gunicorn>=22.0

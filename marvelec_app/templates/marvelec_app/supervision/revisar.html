@@ -27,9 +27,9 @@
         {% for reporte in pagina %}
         <article class="review-card" tabindex="0" data-review="{{ reporte.pk }}"
                  data-url-revisar="{% url 'marvelec_app:revisar_reporte' reporte.pk %}">
-            {% if reporte.foto_llegada %}
-            <img class="review-photo" src="{{ reporte.foto_llegada.url }}" alt="Foto de llegada" loading="lazy"
-                 data-lightbox="{{ reporte.foto_llegada.url }}"
+            {% if reporte.foto %}
+            <img class="review-photo" src="{{ reporte.foto.url }}" alt="Foto del avance" loading="lazy"
+                 data-lightbox="{{ reporte.foto.url }}"
                  data-caption="{{ reporte.nombre_trabajador }} — {{ reporte.fecha_hora|date:'d-m-Y H:i' }}">
             {% else %}
             <div class="review-photo">{% icono "image" "icon-lg" %}<span class="small">Sin foto</span></div>

@@ -39,9 +39,9 @@
     </div>
     {% endif %}
 
-    {% if reporte.foto_llegada %}
-    <div class="detalle-foto" data-lightbox="{{ reporte.foto_llegada.url }}" data-caption="Foto de llegada">
-        <img src="{{ reporte.foto_llegada.url }}" alt="Foto de llegada">
+    {% if reporte.foto %}
+    <div class="detalle-foto" data-lightbox="{{ reporte.foto.url }}" data-caption="Foto del avance">
+        <img src="{{ reporte.foto.url }}" alt="Foto del avance">
     </div>
     {% endif %}
 

@@ -82,8 +82,8 @@ class PerfilTrabajador(models.Model):
 
 class ReporteAvance(models.Model):
     """
-    Reemplaza el mensaje de WhatsApp: un trabajador reporta su llegada a la obra,
-    junto con los puntos ejecutados en el día en una subetapa determinada.
+    Reemplaza el mensaje de WhatsApp: un trabajador reporta los puntos ejecutados en una
+    subetapa, con una foto opcional como evidencia. La llegada a la obra se registra aparte.
     """
     ESTADO_PENDIENTE = 'pendiente'
     ESTADO_APROBADO = 'aprobado'
@@ -98,8 +98,10 @@ class ReporteAvance(models.Model):
     obra = models.ForeignKey(Obra, on_delete=models.PROTECT, related_name='reportes')
     subetapa = models.ForeignKey(Subetapa, on_delete=models.PROTECT, related_name='reportes')
     # Hora en que el trabajador hizo el reporte (puede venir del celular si se envió sin señal).
-    fecha_hora = models.DateTimeField(default=timezone.now, db_index=True)
-    foto_llegada = models.ImageField(upload_to='reportes/llegada/', blank=True, null=True)
+    fecha_hora = models.DateTimeField(default=timezone.now, db_index=True, verbose_name="Fecha y hora")
+    foto = models.ImageField(
+        upload_to='reportes/avance/%Y/%m/', blank=True, null=True, verbose_name="Foto del avance"
+    )
     comentario = models.TextField(blank=True, verbose_name="Comentarios / consultas")
     total_puntos = models.PositiveIntegerField(default=0, editable=False)
 
@@ -173,9 +175,13 @@ class ReporteAvance(models.Model):
     def nombre_trabajador(self):
         return self.trabajador.get_full_name() or self.trabajador.username
 
+    def get_absolute_url(self):
+        from django.urls import reverse
+        return reverse('marvelec_app:reporte_detalle', args=[self.pk])
+
     def __str__(self):
-        fecha_str = self.fecha_hora.strftime('%d/%m/%Y') if self.fecha_hora else 'N/A'
-        return f"Reporte de {self.trabajador.username} - {self.obra.nombre} ({fecha_str})"
+        fecha_str = timezone.localtime(self.fecha_hora).strftime('%d/%m/%Y') if self.fecha_hora else 'N/A'
+        return f"Reporte de {self.nombre_trabajador} - {self.obra.nombre} ({fecha_str})"
 
 
 class RegistroPunto(models.Model):

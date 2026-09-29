@@ -3,8 +3,9 @@
 Reemplaza el flujo informal de WhatsApp de **MARVELEC SPA** (contratista de obra gruesa
 eléctrica). Es una sola aplicación web instalable (PWA) con dos experiencias:
 
-- **App del trabajador (celular):** reporta su llegada con foto y los **puntos ejecutados**
-  (red / fuerza / iluminación) por **subetapa**. Funciona **sin señal**: el reporte queda
+- **App del trabajador (celular):** reporta los **puntos ejecutados** (red / fuerza /
+  iluminación) por **subetapa**, con una foto opcional del avance. (La marca de llegada a la
+  obra será un módulo aparte.) Funciona **sin señal**: el reporte queda
   guardado en el teléfono y se envía solo al volver la conexión.
 - **Programa de supervisión (PC):** resumen con gráficos, cola de revisión para
   **aprobar u observar** reportes, lista filtrable, ranking de **puntos por jornada** por
@@ -29,10 +30,11 @@ Abre http://127.0.0.1:8000/ (las notificaciones push y la instalación como app 
 
 ## 2. Primeros pasos
 
-1. Entra a **/admin/** y crea una **Obra** con sus **Subetapas**.
+1. Entra a **/admin/** (tema [Unfold](https://unfoldadmin.com)) y crea una **Obra** con sus **Subetapas**.
 2. Crea usuarios y, en **"Perfil de Trabajador"**, define su **rol** (Trabajador /
    Supervisor / Gerencia) y su **obra asignada**.
-3. Con un trabajador, en el celular: *Reportar* → foto → puntos con los botones − / + → Enviar.
+3. Con un trabajador, en el celular: *Reportar avance* → subetapa → foto (opcional) → puntos
+   con los botones − / + → Enviar.
 4. Con un supervisor, en el PC: *Por revisar* → **Aprobar** (tecla `A`) u **Observar** (tecla `O`).
 5. En cada dispositivo toca **"Activar notificaciones"**. En iPhone primero hay que
    instalar la app (Safari → Compartir → *Agregar a inicio*, iOS 16.4+).

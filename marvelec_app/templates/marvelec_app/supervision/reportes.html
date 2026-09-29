@@ -39,9 +39,9 @@
                         <td class="t-right"><span class="pts">{{ reporte.total_puntos }}</span></td>
                         <td>{% include "marvelec_app/partials/desglose.html" %}</td>
                         <td>
-                            {% if reporte.foto_llegada %}
-                            <img src="{{ reporte.foto_llegada.url }}" alt="Foto" class="table-thumb" loading="lazy"
-                                 data-lightbox="{{ reporte.foto_llegada.url }}"
+                            {% if reporte.foto %}
+                            <img src="{{ reporte.foto.url }}" alt="Foto" class="table-thumb" loading="lazy"
+                                 data-lightbox="{{ reporte.foto.url }}"
                                  data-caption="{{ reporte.nombre_trabajador }} — {{ reporte.fecha_hora|date:'d-m-Y H:i' }}">
                             {% else %}<span class="muted">—</span>{% endif %}
                         </td>

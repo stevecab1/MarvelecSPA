@@ -44,7 +44,7 @@
         enviarUno: async function (item, csrf) {
             const datos = new FormData();
             Object.keys(item.campos).forEach((k) => datos.append(k, item.campos[k]));
-            if (item.foto) datos.append('foto_llegada', item.foto, item.foto_nombre || 'foto.jpg');
+            if (item.foto) datos.append('foto', item.foto, item.foto_nombre || 'foto.jpg');
             datos.append('uuid_cliente', item.uuid);
             datos.append('fecha_hora_cliente', item.creado);
             if (item.offline) datos.append('offline', '1');

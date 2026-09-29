@@ -5,7 +5,7 @@
 <div class="row-between mb-3">
     <div>
         <h1>{% if reporte %}Corregir reporte{% else %}Nuevo reporte{% endif %}</h1>
-        <p class="muted small">{% if reporte %}Del {{ reporte.fecha_hora|date:"d-m-Y H:i" }}{% else %}Llegada y avance del día{% endif %}</p>
+        <p class="muted small">{% if reporte %}Del {{ reporte.fecha_hora|date:"d-m-Y H:i" }}{% else %}Puntos y avance del día{% endif %}</p>
     </div>
 </div>
 
@@ -52,18 +52,18 @@
 
     <!-- 2. Foto -->
     <section class="card paso">
-        <div class="paso-titulo"><span class="paso-num">2</span> Foto de llegada</div>
-        <label class="foto-picker {% if reporte.foto_llegada %}has-foto{% endif %}">
-            {{ form.foto_llegada }}
+        <div class="paso-titulo"><span class="paso-num">2</span> Foto del avance <span class="muted small">(opcional)</span></div>
+        <label class="foto-picker {% if reporte.foto %}has-foto{% endif %}">
+            {{ form.foto }}
             {% icono "camera" %}
             <strong>Tomar foto</strong>
-            <span class="small">Se abrirá la cámara del teléfono</span>
-            {% if reporte.foto_llegada %}
-            <img src="{{ reporte.foto_llegada.url }}" alt="Foto actual">
+            <span class="small">Muestra el trabajo realizado</span>
+            {% if reporte.foto %}
+            <img src="{{ reporte.foto.url }}" alt="Foto actual">
             <span class="foto-cambiar">Cambiar foto</span>
             {% endif %}
         </label>
-        {{ form.foto_llegada.errors }}
+        {{ form.foto.errors }}
     </section>
 
     <!-- 3. Puntos -->

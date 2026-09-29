@@ -27,7 +27,7 @@ from .models import Notificacion, PerfilTrabajador, ReporteAvance, RegistroPunto
 from .servicios import crear_reporte, corregir_reporte, revisar_reporte, leer_uuid
 
 # Cambiar al modificar sw.js para forzar su actualización en los dispositivos.
-SW_VERSION = '2.0.0'
+SW_VERSION = '2.1.0'
 
 
 # =========================================================
@@ -211,7 +211,12 @@ def api_crear_reporte(request):
         return JsonResponse({'ok': False, 'mensaje': 'Este reporte pertenece a otro usuario.'}, status=409)
 
     perfil = _get_perfil(request.user)
-    form = ReporteAvanceForm(request.POST, request.FILES, obra_asignada=perfil.obra_asignada)
+    archivos = request.FILES
+    if 'foto_llegada' in archivos and 'foto' not in archivos:
+        # Celulares con la versión anterior de la app (en caché o con reportes guardados sin señal).
+        archivos = archivos.copy()
+        archivos['foto'] = archivos['foto_llegada']
+    form = ReporteAvanceForm(request.POST, archivos, obra_asignada=perfil.obra_asignada)
     puntos_form = PuntosForm(request.POST)
 
     if not (form.is_valid() and puntos_form.is_valid()):

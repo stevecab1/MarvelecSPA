@@ -11,16 +11,16 @@
 {% block content %}
 <div class="detalle">
     <div class="stack">
-        {% if reporte.foto_llegada %}
-        <div class="detalle-foto" data-lightbox="{{ reporte.foto_llegada.url }}"
+        {% if reporte.foto %}
+        <div class="detalle-foto" data-lightbox="{{ reporte.foto.url }}"
              data-caption="{{ reporte.nombre_trabajador }} — {{ reporte.fecha_hora|date:'d-m-Y H:i' }}">
-            <img src="{{ reporte.foto_llegada.url }}" alt="Foto de llegada">
+            <img src="{{ reporte.foto.url }}" alt="Foto del avance">
         </div>
         <div class="row">
-            <a href="{{ reporte.foto_llegada.url }}" download class="btn btn-secondary btn-sm">{% icono "download" "icon-sm" %} Descargar foto</a>
+            <a href="{{ reporte.foto.url }}" download class="btn btn-secondary btn-sm">{% icono "download" "icon-sm" %} Descargar foto</a>
         </div>
         {% else %}
-        <div class="card empty">{% icono "image" %}<p>Este reporte no tiene foto de llegada.</p></div>
+        <div class="card empty">{% icono "image" %}<p>Este reporte no tiene foto del avance.</p></div>
         {% endif %}
 
         {% if reporte.comentario %}
