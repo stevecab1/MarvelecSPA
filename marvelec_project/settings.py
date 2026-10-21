@@ -218,7 +218,10 @@ UNFOLD = {
                 'title': 'Obras',
                 'items': [
                     {'title': 'Obras', 'icon': 'apartment', 'link': _admin_url('marvelec_app_obra')},
-                    {'title': 'Subetapas', 'icon': 'layers', 'link': _admin_url('marvelec_app_subetapa')},
+                    {'title': 'Zonas', 'icon': 'layers', 'link': _admin_url('marvelec_app_zona')},
+                    {'title': 'Racks', 'icon': 'dns', 'link': _admin_url('marvelec_app_rack')},
+                    {'title': 'Paquetes', 'icon': 'inventory_2', 'link': _admin_url('marvelec_app_paquete')},
+                    {'title': 'Puntos', 'icon': 'lan', 'link': _admin_url('marvelec_app_punto')},
                 ],
             },
             {
@@ -230,16 +233,21 @@ UNFOLD = {
                 ],
             },
             {
-                'title': 'Reportes',
+                'title': 'Terreno',
                 'items': [
                     {'title': 'Reportes de avance', 'icon': 'assignment',
                      'link': _admin_url('marvelec_app_reporteavance')},
+                    {'title': 'Incidencias', 'icon': 'report', 'link': _admin_url('marvelec_app_incidencia')},
+                    {'title': 'Asistencia', 'icon': 'event_available', 'link': _admin_url('marvelec_app_asistencia')},
                 ],
             },
             {
                 'title': 'Sistema',
                 'collapsible': True,
                 'items': [
+                    {'title': 'Tipos de punto', 'icon': 'category', 'link': _admin_url('marvelec_app_tipopunto')},
+                    {'title': 'Tipos de incidencia', 'icon': 'rule',
+                     'link': _admin_url('marvelec_app_tipoincidencia')},
                     {'title': 'Notificaciones', 'icon': 'notifications',
                      'link': _admin_url('marvelec_app_notificacion')},
                     {'title': 'Suscripciones push', 'icon': 'phonelink_ring',

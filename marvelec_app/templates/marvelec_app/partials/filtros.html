@@ -1,5 +1,5 @@
 {% load marvelec_tags %}
-{{ subetapas_por_obra|json_script:"filtro-subetapas" }}
+{{ racks_por_obra|json_script:"filtro-racks" }}
 <form method="get" class="card filters" data-filtros>
     {% if con_fechas %}
     <div class="field">
@@ -23,12 +23,22 @@
     </div>
     {% endif %}
     <div class="field">
-        <label for="f-subetapa">Subetapa</label>
-        <select name="subetapa" id="f-subetapa" data-seleccion="{{ filtros.subetapa|default:'' }}"
-                data-obra-fija="{% if obra_fija %}{{ perfil_app.obra_asignada_id }}{% endif %}">
-            <option value="">Todas</option>
+        <label for="f-rack">Rack</label>
+        <select name="rack" id="f-rack" data-seleccion="{{ filtros.rack|default:'' }}" data-obra-fija="{{ obra_fija|default:'' }}">
+            <option value="">Todos</option>
         </select>
     </div>
+    {% if con_etapa %}
+    <div class="field">
+        <label for="f-etapa">Etapa</label>
+        <select name="etapa" id="f-etapa">
+            <option value="">Todas</option>
+            {% for valor, etiqueta in etapas_choices %}
+            <option value="{{ valor }}" {% if filtros.etapa == valor %}selected{% endif %}>{{ etiqueta }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    {% endif %}
     <div class="field">
         <label for="f-trabajador">Trabajador</label>
         <select name="trabajador" id="f-trabajador">

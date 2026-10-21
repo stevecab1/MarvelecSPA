@@ -1,0 +1,104 @@
+{% extends "layouts/escritorio.html" %}
+{% load static marvelec_tags %}
+{% block title %}Cargar puntos - MARVELEC{% endblock %}
+{% block page_title %}Cargar puntos desde Excel{% endblock %}
+{% block page_subtitle %}La base contra la cual se mide el avance real de la obra{% endblock %}
+{% block content %}
+<div class="stack-lg">
+    {% if not resultado %}
+    <div class="grid-2">
+        <section class="card">
+            <h3 class="mb-2">{% icono "upload" %} Subir planilla</h3>
+            <form method="post" enctype="multipart/form-data" class="form-grid">
+                {% csrf_token %}
+                {% if form.non_field_errors %}<div class="banner banner-danger">{{ form.non_field_errors }}</div>{% endif %}
+                <div class="field">
+                    <label for="{{ form.obra.id_for_label }}">Obra</label>
+                    {{ form.obra }}{{ form.obra.errors }}
+                </div>
+                <div class="field">
+                    <label for="{{ form.archivo.id_for_label }}">{{ form.archivo.label }}</label>
+                    {{ form.archivo }}{{ form.archivo.errors }}
+                </div>
+                <button type="submit" class="btn">{% icono "eye" "icon-sm" %} Revisar antes de cargar</button>
+            </form>
+        </section>
+        <section class="card">
+            <h3 class="mb-2">{% icono "info" %} Formatos aceptados</h3>
+            <div class="stack small">
+                <div>
+                    <b>1. La planilla de paquetes de siempre.</b>
+                    Una hoja por rack (ej. <code>RACK_1H</code>), una columna por paquete con
+                    <code>PAQUETE 01</code>, los códigos (<code>DT-001</code>, <code>VD-009</code>, <code>RI-040</code>…) hacia abajo
+                    y al final <code>36 METROS</code>. Los totales de la hoja se ignoran.
+                </div>
+                <div>
+                    <b>2. Una tabla simple</b> con las columnas <code>rack</code>, <code>paquete</code>, <code>codigo</code>,
+                    <code>zona</code> y <code>metros</code>.
+                    <a href="{% url 'marvelec_app:plantilla_puntos' %}">{% icono "download" "icon-sm" %} Descargar plantilla</a>
+                </div>
+                <p class="muted">La carga nunca borra puntos: crea los nuevos y actualiza paquete y metraje de los que ya existen.
+                    Puedes volver a subir la planilla cuando cambie.</p>
+            </div>
+        </section>
+    </div>
+    {% else %}
+
+    <section class="card">
+        <div class="row-between mb-3">
+            <div>
+                <h3>Vista previa · {{ obra.nombre }}</h3>
+                <p class="muted small">{{ resultado.puntos|length }} punto{{ resultado.puntos|length|pluralize }} en {{ racks|length }} rack{{ racks|length|pluralize }} ·
+                    <b>{{ comparacion.nuevos }}</b> nuevo{{ comparacion.nuevos|pluralize }} y <b>{{ comparacion.actualizados }}</b> ya existente{{ comparacion.actualizados|pluralize }}
+                    {% if comparacion.racks_nuevos %} · racks nuevos: {{ comparacion.racks_nuevos|join:", " }}{% endif %}</p>
+            </div>
+            <a href="{% url 'marvelec_app:cargar_puntos' %}" class="btn btn-ghost btn-sm">{% icono "x" "icon-sm" %} Subir otro archivo</a>
+        </div>
+
+        {% if resultado.errores %}
+        <div class="banner banner-danger mb-3">
+            {% icono "alert" %}
+            <div class="banner-body">
+                <strong>No se puede cargar: corrige la planilla</strong>
+                <ul class="omitidos-lista">{% for e in resultado.errores %}<li>{{ e }}</li>{% endfor %}</ul>
+            </div>
+        </div>
+        {% endif %}
+
+        {% if racks %}
+        <div class="table-wrap">
+            <table class="table">
+                <thead><tr><th>Rack</th><th class="t-right">Paquetes</th><th class="t-right">Puntos</th><th>Por tipo</th></tr></thead>
+                <tbody>
+                    {% for r in racks %}
+                    <tr>
+                        <td><b>{{ r.rack }}</b></td>
+                        <td class="t-right num">{{ r.paquetes }}</td>
+                        <td class="t-right num">{{ r.puntos }}</td>
+                        <td>{% for sigla, n in r.tipos %}<span class="badge mr-1">{{ sigla }} {{ n }}</span> {% endfor %}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% endif %}
+
+        {% if resultado.advertencias %}
+        <details class="mt-3">
+            <summary class="small"><b>{{ resultado.advertencias|length }} advertencia{{ resultado.advertencias|length|pluralize }}</b> (no impiden la carga)</summary>
+            <ul class="omitidos-lista small mt-1">{% for a in resultado.advertencias %}<li>{{ a }}</li>{% endfor %}</ul>
+        </details>
+        {% endif %}
+
+        {% if datos %}
+        <form method="post" class="row mt-3">
+            {% csrf_token %}
+            <input type="hidden" name="datos" value="{{ datos }}">
+            <button type="submit" name="confirmar" value="1" class="btn btn-success">{% icono "check" "icon-sm" %} Cargar {{ resultado.puntos|length }} puntos</button>
+            <span class="small muted">La vista previa vale por 1 hora.</span>
+        </form>
+        {% endif %}
+    </section>
+    {% endif %}
+</div>
+{% endblock %}

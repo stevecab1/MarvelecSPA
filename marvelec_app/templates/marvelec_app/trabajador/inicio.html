@@ -11,12 +11,28 @@
             <div class="hero-stat"><b>{{ puntos_semana }}</b><span>puntos semana</span></div>
             <div class="hero-stat"><b>{{ reportes_semana }}</b><span>reportes semana</span></div>
         </div>
-        <a href="{% url 'marvelec_app:nuevo_reporte' %}" class="btn btn-accent btn-lg btn-block">
-            {% icono "camera" %} {% if reporto_hoy %}Nuevo reporte{% else %}Reportar avance{% endif %}
+        {% if not asistencia_hoy or asistencia_hoy.estado == "rechazada" %}
+        <a href="{% url 'marvelec_app:marcar_asistencia' %}" class="btn btn-accent btn-lg btn-block">
+            {% icono "camera" %} {% if asistencia_hoy %}Volver a marcar llegada{% else %}Marcar llegada{% endif %}
         </a>
+        {% else %}
+        <div class="hero-llegada">
+            {% icono "check-circle" %}
+            <span>Llegada {{ asistencia_hoy.hora|time:"H:i" }} · {% if asistencia_hoy.estado == "confirmada" %}confirmada{% else %}por confirmar{% endif %}</span>
+        </div>
+        <a href="{% url 'marvelec_app:nuevo_reporte' %}" class="btn btn-accent btn-lg btn-block">
+            {% icono "plus" %} Reportar avance
+        </a>
+        {% endif %}
     </section>
 
-    <!-- Reportes guardados sin señal -->
+    <div class="acciones-rapidas">
+        <a href="{% url 'marvelec_app:nuevo_reporte' %}" class="accion">{% icono "network" %}<span>Avance</span></a>
+        <a href="{% url 'marvelec_app:nueva_incidencia' %}" class="accion accion-danger">{% icono "alert" %}<span>Incidencia</span></a>
+        <a href="{% url 'marvelec_app:historial_trabajador' %}?ver=llegadas" class="accion">{% icono "calendar" %}<span>Mis llegadas</span></a>
+    </div>
+
+    <!-- Registros guardados sin señal -->
     <div class="banner banner-info" data-outbox-banner hidden>
         {% icono "cloud-off" %}
         <div class="banner-body">
@@ -31,7 +47,7 @@
         {% icono "bell" %}
         <div class="banner-body">
             <strong>Activa las notificaciones</strong>
-            <span class="small">Te avisamos cuando tu supervisor revise tus reportes.</span>
+            <span class="small">Te avisamos cuando tu supervisor revise tus reportes o libere un punto.</span>
         </div>
         <button type="button" class="btn btn-sm" data-push-activar>Activar</button>
     </div>
@@ -43,16 +59,43 @@
         </div>
     </div>
 
+    {% if asistencia_hoy.estado == "rechazada" %}
+    <a href="{% url 'marvelec_app:marcar_asistencia' %}" class="banner banner-danger" style="text-decoration:none">
+        {% icono "alert" %}
+        <div class="banner-body">
+            <strong>Tu llegada de hoy fue rechazada</strong>
+            <span class="small">{{ asistencia_hoy.motivo_rechazo|truncatechars:90 }}</span>
+        </div>
+        {% icono "chevron-right" %}
+    </a>
+    {% endif %}
+
     {% for reporte in observados %}
     <a href="{% url 'marvelec_app:reporte_detalle' reporte.pk %}" class="banner banner-danger" style="text-decoration:none">
         {% icono "alert" %}
         <div class="banner-body">
-            <strong>Reporte observado: {{ reporte.subetapa.nombre }} ({{ reporte.fecha_hora|date:"d-m" }})</strong>
+            <strong>Reporte observado: Rack {{ reporte.rack.nombre }} ({{ reporte.fecha_hora|date:"d-m" }})</strong>
             <span class="small">{{ reporte.comentario_revision|truncatechars:90 }}</span>
         </div>
         {% icono "chevron-right" %}
     </a>
     {% endfor %}
+
+    {% if mis_incidencias %}
+    <section class="card">
+        <div class="card-header"><h3>{% icono "alert" %} Mis puntos bloqueados</h3><span class="badge badge-observado">{{ mis_incidencias|length }}</span></div>
+        <div class="feed">
+            {% for inc in mis_incidencias %}
+            <div class="feed-item">
+                <span class="feed-body">
+                    <span class="feed-title">{{ inc.punto.codigo }} · Rack {{ inc.punto.rack.nombre }}</span>
+                    <span class="feed-meta">{{ inc.tipo.nombre }} · hace {{ inc.creada|timesince }}</span>
+                </span>
+            </div>
+            {% endfor %}
+        </div>
+    </section>
+    {% endif %}
 </div>
 
 <div class="section-title">

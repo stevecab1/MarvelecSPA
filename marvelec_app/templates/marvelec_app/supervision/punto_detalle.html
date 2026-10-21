@@ -1,0 +1,87 @@
+{% extends "layouts/escritorio.html" %}
+{% load static marvelec_tags %}
+{% block title %}{{ punto.codigo }} - MARVELEC{% endblock %}
+{% block page_title %}Punto {{ punto.codigo }}{% endblock %}
+{% block page_subtitle %}Rack {{ punto.rack.nombre }} · {{ punto.rack.obra.nombre }}{% endblock %}
+{% block content %}
+<div class="stack-lg">
+    <a href="{% url 'marvelec_app:rack_detalle' punto.rack_id %}" class="btn btn-ghost btn-sm" style="justify-self:start">{% icono "chevron-left" "icon-sm" %} Rack {{ punto.rack.nombre }}</a>
+
+    <div class="detalle">
+        <div class="stack">
+            <section class="card">
+                <h3 class="mb-3">Etapas</h3>
+                <div class="etapas-estado">
+                    {% for e, avance in estado_etapas %}
+                    <div class="etapa-paso etapa-{{ e.clave }} {% if avance %}is-hecha{% endif %}">
+                        <span class="etapa-check">{% if avance %}{% icono "check" "icon-sm" %}{% else %}{{ forloop.counter }}{% endif %}</span>
+                        <span>
+                            <b>{{ e.nombre }}</b>
+                            {% if avance %}
+                            <small>{{ avance.reporte.nombre_trabajador }} · {{ avance.reporte.fecha_hora|date:"d-m-Y H:i" }} · <a href="{% url 'marvelec_app:reporte_detalle' avance.reporte_id %}">reporte #{{ avance.reporte_id }}</a></small>
+                            {% else %}
+                            <small class="muted">Pendiente</small>
+                            {% endif %}
+                        </span>
+                    </div>
+                    {% endfor %}
+                </div>
+            </section>
+
+            {% for inc in abiertas %}
+            <section class="card card-alerta">
+                <div class="card-header"><h3>{% icono "alert" %} Bloqueado: {{ inc.tipo.nombre }}</h3><span class="small muted">hace {{ inc.creada|timesince }}</span></div>
+                {% if inc.foto %}<img class="review-photo mb-2" src="{{ inc.foto.url }}" alt="Foto de la incidencia" data-lightbox="{{ inc.foto.url }}" data-caption="{{ punto.codigo }} · {{ inc.tipo.nombre }}" style="max-width:320px">{% endif %}
+                <p class="small">Reportó {{ inc.reportada_por|nombre_usuario }}{% if inc.comentario %}: “{{ inc.comentario }}”{% endif %}</p>
+                <form method="post" action="{% url 'marvelec_app:liberar_incidencia' inc.pk %}" class="stack mt-2">
+                    {% csrf_token %}
+                    <input type="hidden" name="next" value="{{ request.path }}">
+                    {{ liberar_form.comentario }}
+                    <button type="submit" class="btn btn-success">{% icono "check" "icon-sm" %} Liberar punto</button>
+                </form>
+            </section>
+            {% endfor %}
+        </div>
+
+        <div class="stack">
+            <section class="card">
+                <dl class="dl">
+                    <dt>Código</dt><dd>{{ punto.codigo }}{% if punto.tipo.nombre %} <span class="muted">({{ punto.tipo.nombre }})</span>{% endif %}</dd>
+                    <dt>Rack</dt><dd>{{ punto.rack.nombre }}</dd>
+                    <dt>Paquete</dt><dd>{% if punto.paquete %}{{ punto.paquete.numero|stringformat:"02d" }}{% else %}—{% endif %}</dd>
+                    <dt>Zona</dt><dd>{{ punto.paquete.zona.nombre|default:"—" }}</dd>
+                    <dt>Metraje</dt><dd>{% if punto.metros_efectivos %}{{ punto.metros_efectivos }} m{% else %}—{% endif %}</dd>
+                </dl>
+            </section>
+
+            <section class="card">
+                <h3 class="mb-3">Historial</h3>
+                <div class="timeline">
+                    {% for ev in eventos %}
+                    {% if ev.tipo == "avance" %}
+                    <div class="timeline-item etapa-{{ ev.avance.etapa }}">
+                        <b>{{ ev.avance.get_etapa_display }}</b> por {{ ev.reporte.nombre_trabajador }}
+                        <span class="badge badge-{{ ev.reporte.estado }}">{{ ev.reporte.get_estado_display }}</span>
+                        <time>{{ ev.fecha|date:"d-m-Y H:i" }}</time>
+                    </div>
+                    {% elif ev.tipo == "incidencia" %}
+                    <div class="timeline-item" style="--c: var(--danger)">
+                        <b>Incidencia: {{ ev.incidencia.tipo.nombre }}</b> ({{ ev.incidencia.reportada_por|nombre_usuario }})
+                        <time>{{ ev.fecha|date:"d-m-Y H:i" }}</time>
+                    </div>
+                    {% else %}
+                    <div class="timeline-item" style="--c: var(--ok)">
+                        <b>Liberado</b>{% if ev.incidencia.liberada_por %} por {{ ev.incidencia.liberada_por|nombre_usuario }}{% endif %} · detenido {{ ev.incidencia.horas_detenido }} h
+                        <time>{{ ev.fecha|date:"d-m-Y H:i" }}</time>
+                        {% if ev.incidencia.comentario_liberacion %}<p class="small mt-1">“{{ ev.incidencia.comentario_liberacion }}”</p>{% endif %}
+                    </div>
+                    {% endif %}
+                    {% empty %}
+                    <p class="muted small">Este punto aún no tiene registros.</p>
+                    {% endfor %}
+                </div>
+            </section>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -5,26 +5,27 @@
     const MV = window.MV;
 
     // =========================================================
-    // Filtro de subetapas dependiente de la obra
+    // Filtro de racks dependiente de la obra
     // =========================================================
-    const datosSub = document.getElementById('filtro-subetapas');
-    const subSel = document.getElementById('f-subetapa');
+    const datosRacks = document.getElementById('filtro-racks');
+    const rackSel = document.getElementById('f-rack');
     const obraSel = document.getElementById('f-obra');
-    if (datosSub && subSel) {
-        const porObra = JSON.parse(datosSub.textContent);
-        const seleccion = subSel.dataset.seleccion;
+    if (datosRacks && rackSel) {
+        const porObra = JSON.parse(datosRacks.textContent);
+        const seleccion = rackSel.dataset.seleccion;
         const pintar = () => {
-            const obra = obraSel ? obraSel.value : subSel.dataset.obraFija;
-            const lista = obra ? (porObra[obra] || []) : [];
-            subSel.innerHTML = '<option value="">' + (obra ? 'Todas' : 'Elige una obra') + '</option>';
-            lista.forEach((s) => {
-                const op = new Option(s.nombre, s.id);
-                if (String(s.id) === seleccion) op.selected = true;
-                subSel.add(op);
+            const obra = obraSel ? obraSel.value : rackSel.dataset.obraFija;
+            // Sin obra elegida se listan todos los racks (con su obra para distinguirlos).
+            const lista = obra ? (porObra[obra] || []).map((r) => [r, '']) :
+                Object.keys(porObra).flatMap((o) => porObra[o].map((r) => [r, o]));
+            rackSel.innerHTML = '<option value="">Todos</option>';
+            lista.forEach(([r]) => {
+                const op = new Option('Rack ' + r.nombre, r.id);
+                if (String(r.id) === seleccion) op.selected = true;
+                rackSel.add(op);
             });
-            subSel.disabled = !obra;
         };
-        if (obraSel) obraSel.addEventListener('change', () => { subSel.dataset.seleccion = ''; pintar(); });
+        if (obraSel) obraSel.addEventListener('change', () => { rackSel.dataset.seleccion = ''; pintar(); });
         pintar();
     }
 
@@ -36,8 +37,7 @@
         const g = JSON.parse(datosGraficos.textContent);
         const css = getComputedStyle(document.documentElement);
         const color = (v) => css.getPropertyValue(v).trim();
-        const colores = { red: color('--tipo-red'), fuerza: color('--tipo-fuerza'), iluminacion: color('--tipo-iluminacion') };
-        const nombres = { red: 'Red', fuerza: 'Fuerza', iluminacion: 'Iluminación' };
+        const colorEtapa = (clave) => color('--etapa-' + clave) || color('--brand-400');
         const texto = color('--muted');
         const grilla = color('--border');
 
@@ -59,11 +59,11 @@
                 type: 'bar',
                 data: {
                     labels: g.por_dia.labels,
-                    datasets: Object.keys(g.por_dia.series).map((tipo) => ({
-                        label: nombres[tipo],
-                        data: g.por_dia.series[tipo],
-                        backgroundColor: colores[tipo],
-                        borderRadius: 4,
+                    datasets: Object.keys(g.por_dia.series).map((clave) => ({
+                        label: g.por_dia.nombres[clave],
+                        data: g.por_dia.series[clave],
+                        backgroundColor: colorEtapa(clave),
+                        borderRadius: 3,
                         maxBarThickness: 28,
                     })),
                 },
@@ -81,16 +81,16 @@
             });
         }
 
-        const tipos = document.getElementById('g-tipos');
-        if (tipos) {
-            const total = g.por_tipo.valores.reduce((a, b) => a + b, 0);
-            new Chart(tipos, {
+        const porEtapa = document.getElementById('g-etapas');
+        if (porEtapa) {
+            const total = g.por_etapa.valores.reduce((a, b) => a + b, 0);
+            new Chart(porEtapa, {
                 type: 'doughnut',
                 data: {
-                    labels: g.por_tipo.labels,
+                    labels: g.por_etapa.labels,
                     datasets: [{
-                        data: total ? g.por_tipo.valores : [1],
-                        backgroundColor: total ? g.por_tipo.claves.map((k) => colores[k]) : [grilla],
+                        data: total ? g.por_etapa.valores : [1],
+                        backgroundColor: total ? g.por_etapa.claves.map(colorEtapa) : [grilla],
                         borderWidth: 0,
                     }],
                 },
@@ -114,47 +114,51 @@
                         ctx.fillText(total, x, y + 4);
                         ctx.fillStyle = texto;
                         ctx.font = '600 12px ' + Chart.defaults.font.family;
-                        ctx.fillText('puntos', x, y + 24);
+                        ctx.fillText('etapas', x, y + 24);
                         ctx.restore();
                     },
                 }],
             });
         }
-
-        const subs = document.getElementById('g-subetapas');
-        if (subs) {
-            new Chart(subs, {
-                type: 'bar',
-                data: {
-                    labels: g.por_subetapa.map((s) => s.nombre),
-                    datasets: [{
-                        data: g.por_subetapa.map((s) => s.total),
-                        backgroundColor: color('--brand-400') || '#5b47c7',
-                        borderRadius: 6,
-                        maxBarThickness: 22,
-                    }],
-                },
-                options: {
-                    indexAxis: 'y',
-                    scales: {
-                        x: { beginAtZero: true, grid: { color: grilla }, border: { display: false }, ticks: { precision: 0 } },
-                        y: { grid: { display: false } },
-                    },
-                    plugins: {
-                        tooltip: {
-                            callbacks: {
-                                title: (items) => {
-                                    const s = g.por_subetapa[items[0].dataIndex];
-                                    return s.obra + ' / ' + s.nombre;
-                                },
-                                label: (item) => item.parsed.x + ' puntos',
-                            },
-                        },
-                    },
-                },
-            });
-        }
     }
+
+    // =========================================================
+    // Asistencia: confirmar / rechazar sin recargar
+    // =========================================================
+    document.addEventListener('click', async (e) => {
+        const boton = e.target.closest('[data-accion-asistencia]');
+        if (!boton) return;
+        const acciones = boton.closest('[data-asistencia-acciones]');
+        const tarjeta = boton.closest('[data-asistencia]');
+        const accion = boton.dataset.accionAsistencia;
+        const datos = new FormData();
+        datos.append('accion', accion);
+        if (accion === 'rechazar') {
+            const motivo = prompt('¿Por qué rechazas esta llegada? (el trabajador verá el motivo)');
+            if (!motivo || !motivo.trim()) return;
+            datos.append('motivo', motivo.trim());
+        }
+        acciones.querySelectorAll('button').forEach((b) => { b.disabled = true; });
+        try {
+            const resp = await MV.post(acciones.dataset.url, datos);
+            const data = await resp.json();
+            if (!resp.ok) throw new Error(data.mensaje || 'No se pudo guardar.');
+            const badge = tarjeta.querySelector('[data-asistencia-estado]');
+            if (badge) {
+                badge.className = 'badge badge-dot badge-' + data.estado;
+                badge.textContent = data.etiqueta;
+            }
+            tarjeta.className = tarjeta.className.replace(/\bis-\w+/g, '').trim() + ' is-' + data.estado;
+            acciones.querySelectorAll('button').forEach((b) => {
+                b.disabled = false;
+                b.hidden = (b.dataset.accionAsistencia === 'confirmar') === (data.estado === 'confirmada');
+            });
+            MV.toast('Llegada ' + data.etiqueta.toLowerCase() + '.', 'success', 2000);
+        } catch (err) {
+            MV.toast(err.message || 'Error de conexión.', 'error');
+            acciones.querySelectorAll('button').forEach((b) => { b.disabled = false; });
+        }
+    });
 
     // =========================================================
     // Cola de revisión

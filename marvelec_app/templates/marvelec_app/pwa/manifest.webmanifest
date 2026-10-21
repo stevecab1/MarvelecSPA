@@ -2,7 +2,7 @@
     "id": "/panel/",
     "name": "MARVELEC SPA - Reporte de Avance",
     "short_name": "MARVELEC",
-    "description": "Reporte y seguimiento de avance de obra eléctrica",
+    "description": "Seguimiento de avance por punto de cableado estructurado",
     "lang": "es-CL",
     "start_url": "/panel/",
     "scope": "/",

@@ -8,16 +8,18 @@
 {% endblock %}
 {% block content %}
 <div class="stack">
-    {% include "marvelec_app/partials/filtros.html" with con_fechas=True %}
+    {% include "marvelec_app/partials/filtros.html" with con_fechas=True con_etapa=True %}
 
-    <div class="banner banner-info">
-        {% icono "info" %}
-        <div class="banner-body small">
-            <strong>¿Cómo se calcula?</strong>
-            Una <b>jornada</b> es un día distinto con al menos un reporte. <b>Puntos por jornada</b> = puntos del período ÷ jornadas.
-            Considera todos los reportes del período; el % aprobado indica cuánto está validado por supervisión.
+    <details class="banner banner-info">
+        <summary class="small"><b>¿Cómo se calcula el rendimiento?</b></summary>
+        <div class="small mt-2">
+            Cada etapa tiene un estándar de puntos por persona y jornada (documento "Tiempos de los procesos"):
+            {% for e in estandares %}{{ e.corto }} {{ e.estandar }}{% if not forloop.last %} · {% endif %}{% endfor %}.
+            El <b>rendimiento</b> suma lo hecho en cada etapa dividido por su estándar, y lo divide por las <b>jornadas</b>
+            (días con asistencia confirmada; si aún no hay, días con reporte). <b>100%</b> = rindió exactamente el estándar.
+            Así una certificación y una bajada se comparan con justicia.
         </div>
-    </div>
+    </details>
 
     <div class="card card-flush">
         <div class="table-wrap">
@@ -26,8 +28,9 @@
                     <tr>
                         <th>#</th>
                         <th>Trabajador</th>
-                        <th>Puntos por jornada</th>
+                        <th>Rendimiento</th>
                         <th class="t-right">Puntos</th>
+                        <th>Por etapa</th>
                         <th class="t-right">Jornadas</th>
                         <th class="t-right">Reportes</th>
                         <th class="t-right">% aprobado</th>
@@ -41,23 +44,27 @@
                         <td><span class="person"><span class="avatar">{{ r.nombre|slice:":1" }}</span><b>{{ r.nombre }}</b></span></td>
                         <td>
                             <div class="bar-cell">
-                                <span class="bar"><i style="width:{{ r.puntos_jornada|porcentaje:max_puntos_jornada }}%"></i></span>
-                                <b class="num">{{ r.puntos_jornada }}</b>
+                                <span class="bar"><i style="width:{{ r.rendimiento|porcentaje:max_rendimiento }}%"></i></span>
+                                <b class="num">{{ r.rendimiento }}%</b>
                             </div>
                         </td>
                         <td class="t-right num">{{ r.puntos }}</td>
-                        <td class="t-right num">{{ r.jornadas }}</td>
+                        <td class="small">{% for corto, n in r.detalle_etapas %}{{ corto }} {{ n }}{% if not forloop.last %} · {% endif %}{% endfor %}</td>
+                        <td class="t-right num" title="{% if r.jornadas_asistencia %}Días con asistencia confirmada{% else %}Sin asistencia confirmada: días con reporte{% endif %}">
+                            {{ r.jornadas }}{% if not r.jornadas_asistencia %}<span class="muted">*</span>{% endif %}
+                        </td>
                         <td class="t-right num">{{ r.reportes }}{% if r.observados %} <span class="badge badge-observado" title="Observados">{{ r.observados }}</span>{% endif %}</td>
                         <td class="t-right num">{{ r.pct_aprobados }}%</td>
                         <td class="small muted nowrap">{% if r.ultimo %}hace {{ r.ultimo|timesince }}{% else %}—{% endif %}</td>
                     </tr>
                     {% empty %}
-                    <tr><td colspan="8"><div class="empty">{% icono "users" %}No hay reportes en el período.</div></td></tr>
+                    <tr><td colspan="9"><div class="empty">{% icono "users" %}No hay reportes en el período.</div></td></tr>
                     {% endfor %}
                 </tbody>
             </table>
         </div>
     </div>
+    <p class="small muted">* Jornadas contadas por días con reporte porque el trabajador no tiene asistencia confirmada en el período.</p>
 
     {% if sin_actividad %}
     <section class="card">

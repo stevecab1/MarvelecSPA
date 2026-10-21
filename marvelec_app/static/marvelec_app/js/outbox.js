@@ -1,7 +1,7 @@
 /*
  * MARVELEC SPA — Bandeja de salida de reportes (IndexedDB).
- * Si el trabajador no tiene señal en la obra, el reporte (con su foto) queda guardado
- * en el teléfono y se envía solo cuando vuelve la conexión.
+ * Si el trabajador no tiene señal en la obra, lo que registra (avance, incidencia o llegada,
+ * con su foto) queda guardado en el teléfono y se envía solo cuando vuelve la conexión.
  * Se usa tanto desde la página como desde el Service Worker (importScripts).
  */
 (function (global) {
@@ -43,7 +43,11 @@
          */
         enviarUno: async function (item, csrf) {
             const datos = new FormData();
-            Object.keys(item.campos).forEach((k) => datos.append(k, item.campos[k]));
+            Object.keys(item.campos).forEach((k) => {
+                const valor = item.campos[k];
+                if (Array.isArray(valor)) valor.forEach((v) => datos.append(k, v));
+                else datos.append(k, valor);
+            });
             if (item.foto) datos.append('foto', item.foto, item.foto_nombre || 'foto.jpg');
             datos.append('uuid_cliente', item.uuid);
             datos.append('fecha_hora_cliente', item.creado);

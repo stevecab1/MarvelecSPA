@@ -1,0 +1,64 @@
+{% extends "layouts/movil.html" %}
+{% load marvelec_tags %}
+{% block title %}Reportar incidencia - MARVELEC{% endblock %}
+{% block content %}
+<div class="mb-3">
+    <h1>Reportar incidencia</h1>
+    <p class="muted small">El punto queda bloqueado hasta que el supervisor lo libere.</p>
+</div>
+
+{{ selector|json_script:"selector-data" }}
+
+<form method="post" enctype="multipart/form-data" class="stack-lg" novalidate
+      data-registro-form="incidencia"
+      data-api-url="{% url 'marvelec_app:api_incidencia' %}"
+      data-exito-url="{% url 'marvelec_app:panel_trabajador' %}">
+    {% csrf_token %}
+    {{ form.latitud }}{{ form.longitud }}
+
+    {% if form.non_field_errors %}<div class="banner banner-danger">{{ form.non_field_errors }}</div>{% endif %}
+
+    <section class="card paso">
+        <div class="paso-titulo"><span class="paso-num">1</span> Rack</div>
+        <div class="field">{{ form.rack }}{{ form.rack.errors }}</div>
+    </section>
+
+    {% include "marvelec_app/partials/selector_puntos.html" with num=2 titulo="¿Qué puntos están afectados?" %}
+
+    <section class="card paso">
+        <div class="paso-titulo"><span class="paso-num">3</span> ¿Qué pasó?</div>
+        <div class="opciones-lista" role="radiogroup">
+            {% for tipo in form.fields.tipo.queryset %}
+            <label class="opcion {% if tipo.es_falla_certificacion %}opcion-falla{% endif %}">
+                <input type="radio" name="tipo" value="{{ tipo.pk }}" {% if form.tipo.value|stringformat:"s" == tipo.pk|stringformat:"s" %}checked{% endif %}>
+                <span>{{ tipo.nombre }}{% if tipo.es_falla_certificacion %} <small>falla de certificación</small>{% endif %}</span>
+            </label>
+            {% endfor %}
+        </div>
+        {{ form.tipo.errors }}
+    </section>
+
+    <section class="card paso">
+        <div class="paso-titulo"><span class="paso-num">4</span> Foto <span class="muted small">(recomendada)</span></div>
+        <label class="foto-picker">
+            {{ form.foto }}
+            {% icono "camera" %}
+            <strong>Tomar foto</strong>
+            <span class="small">Muestra el problema (tubo obstruido, caja tapada…)</span>
+        </label>
+        {{ form.foto.errors }}
+    </section>
+
+    <section class="card paso">
+        <div class="paso-titulo"><span class="paso-num">5</span> Detalle</div>
+        {{ form.comentario }}
+        <span class="small muted row" data-gps-estado>{% icono "pin" "icon-sm" %} Buscando ubicación…</span>
+    </section>
+
+    <div class="submit-bar">
+        <button type="submit" class="btn btn-danger btn-lg btn-block">
+            {% icono "alert" %} Reportar incidencia <span class="submit-n" data-submit-n></span>
+        </button>
+    </div>
+</form>
+{% endblock %}

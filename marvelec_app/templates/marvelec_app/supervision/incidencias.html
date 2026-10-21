@@ -1,0 +1,111 @@
+{% extends "layouts/escritorio.html" %}
+{% load static marvelec_tags %}
+{% block title %}Incidencias - MARVELEC{% endblock %}
+{% block page_title %}Incidencias{% endblock %}
+{% block page_subtitle %}{% if estado == "abierta" %}Puntos bloqueados · los más antiguos primero{% else %}Historial de puntos liberados{% endif %}{% endblock %}
+{% block content %}
+<div class="stack-lg">
+    <div class="row-between">
+        <div class="segmented">
+            <a href="{% qs estado='abierta' page='' %}" class="{% if estado == 'abierta' %}is-active{% endif %}">Abiertas</a>
+            <a href="{% qs estado='liberada' page='' %}" class="{% if estado == 'liberada' %}is-active{% endif %}">Liberadas</a>
+        </div>
+        <span class="muted small">{{ pagina.paginator.count }} incidencia{{ pagina.paginator.count|pluralize }}</span>
+    </div>
+
+    {{ racks_por_obra|json_script:"filtro-racks" }}
+    <form method="get" class="card filters">
+        <input type="hidden" name="estado" value="{{ estado }}">
+        {% if not obra_fija %}
+        <div class="field">
+            <label for="f-obra">Obra</label>
+            <select name="obra" id="f-obra">
+                <option value="">Todas las obras</option>
+                {% for obra in obras_disponibles %}<option value="{{ obra.id }}" {% if filtros.obra == obra.id %}selected{% endif %}>{{ obra.nombre }}</option>{% endfor %}
+            </select>
+        </div>
+        {% endif %}
+        <div class="field">
+            <label for="f-rack">Rack</label>
+            <select name="rack" id="f-rack" data-seleccion="{{ filtros.rack|default:'' }}" data-obra-fija="{{ obra_fija|default:'' }}"><option value="">Todos</option></select>
+        </div>
+        <div class="field">
+            <label for="f-tipo">Tipo</label>
+            <select name="tipo" id="f-tipo">
+                <option value="">Todos</option>
+                {% for t in tipos %}<option value="{{ t.pk }}" {% if filtros.tipo == t.pk %}selected{% endif %}>{{ t.nombre }}</option>{% endfor %}
+            </select>
+        </div>
+        <div class="filters-actions">
+            <button type="submit" class="btn">{% icono "filter" "icon-sm" %} Filtrar</button>
+            <a href="{{ request.path }}" class="btn btn-ghost" title="Limpiar filtros">{% icono "x" "icon-sm" %}</a>
+        </div>
+    </form>
+
+    <div class="grid-2 grid-2-1">
+        <div class="review-list">
+            {% for inc in pagina %}
+            <article class="review-card incidencia-card">
+                {% if inc.foto %}
+                <img class="review-photo" src="{{ inc.foto.url }}" alt="Foto de la incidencia" loading="lazy"
+                     data-lightbox="{{ inc.foto.url }}" data-caption="{{ inc.punto.codigo }} · {{ inc.tipo.nombre }}">
+                {% else %}
+                <div class="review-photo">{% icono "image" "icon-lg" %}<span class="small">Sin foto</span></div>
+                {% endif %}
+                <div class="review-info">
+                    <div class="row-between">
+                        <a href="{% url 'marvelec_app:punto_detalle' inc.punto_id %}" class="h3-link"><b>{{ inc.punto.codigo }}</b> · Rack {{ inc.punto.rack.nombre }}</a>
+                        <span class="badge {% if inc.tipo.es_falla_certificacion %}badge-pendiente{% else %}badge-observado{% endif %}">{{ inc.tipo.nombre }}</span>
+                    </div>
+                    <div class="small muted">
+                        {% if not obra_fija %}{{ inc.punto.rack.obra.nombre }} · {% endif %}{% if inc.punto.paquete %}Paquete {{ inc.punto.paquete.numero|stringformat:"02d" }} · {% endif %}
+                        {{ inc.reportada_por|nombre_usuario }} · {{ inc.creada|date:"d-m-Y H:i" }}
+                    </div>
+                    {% if inc.comentario %}<div class="comentario">{{ inc.comentario|linebreaksbr }}</div>{% endif %}
+                    <div class="row small">
+                        {% if inc.abierta %}
+                        <span class="badge badge-observado">{% icono "clock" "icon-sm" %} Detenido {{ inc.creada|timesince }}</span>
+                        {% else %}
+                        <span class="badge badge-aprobado">Detenido {{ inc.horas_detenido }} h</span>
+                        <span class="muted">Liberó {{ inc.liberada_por|nombre_usuario }} el {{ inc.liberada_en|date:"d-m-Y H:i" }}{% if inc.comentario_liberacion %}: “{{ inc.comentario_liberacion }}”{% endif %}</span>
+                        {% endif %}
+                        {% if inc.url_mapa %}<a href="{{ inc.url_mapa }}" target="_blank" rel="noopener">{% icono "pin" "icon-sm" %} Ver en el mapa</a>{% endif %}
+                    </div>
+                </div>
+                {% if inc.abierta %}
+                <form method="post" action="{% url 'marvelec_app:liberar_incidencia' inc.pk %}" class="review-actions">
+                    {% csrf_token %}
+                    <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                    {{ liberar_form.comentario }}
+                    <button type="submit" class="btn btn-success">{% icono "check" "icon-sm" %} Liberar</button>
+                </form>
+                {% endif %}
+            </article>
+            {% empty %}
+            <div class="card empty">{% icono "check-circle" %}<h3>{% if estado == "abierta" %}No hay puntos bloqueados{% else %}Sin incidencias liberadas{% endif %}</h3></div>
+            {% endfor %}
+
+            {% if pagina.has_other_pages %}
+            <div class="row-between">
+                {% if pagina.has_previous %}<a class="btn btn-secondary btn-sm" href="{% qs page=pagina.previous_page_number %}">{% icono "chevron-left" "icon-sm" %} Anterior</a>{% else %}<span></span>{% endif %}
+                <span class="muted small">Página {{ pagina.number }} de {{ pagina.paginator.num_pages }}</span>
+                {% if pagina.has_next %}<a class="btn btn-secondary btn-sm" href="{% qs page=pagina.next_page_number %}">Siguiente {% icono "chevron-right" "icon-sm" %}</a>{% else %}<span></span>{% endif %}
+            </div>
+            {% endif %}
+        </div>
+
+        <section class="card" style="align-self:start">
+            <div class="card-header"><h3>{% icono "clock" %} Tiempo detenido promedio</h3></div>
+            <p class="small muted mb-2">Incidencias liberadas en los últimos 90 días.</p>
+            {% for tipo, n, horas in promedios %}
+            <div class="row-between small mb-2"><span>{{ tipo }} <span class="muted">({{ n }})</span></span><b class="num">{{ horas }} h</b></div>
+            {% empty %}
+            <div class="empty small">Aún no hay incidencias liberadas.</div>
+            {% endfor %}
+        </section>
+    </div>
+</div>
+{% endblock %}
+{% block page_scripts %}
+<script src="{% static 'marvelec_app/js/supervision.js' %}"></script>
+{% endblock %}

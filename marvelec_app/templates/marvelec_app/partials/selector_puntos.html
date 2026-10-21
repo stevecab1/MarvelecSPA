@@ -1,0 +1,31 @@
+{% load marvelec_tags %}
+<section class="card paso" data-selector data-seleccion="{% if form.puntos.value %}{{ form.puntos.value|join:',' }}{% endif %}">
+    <div class="paso-titulo"><span class="paso-num">{{ num }}</span> {{ titulo|default:"Puntos" }}</div>
+
+    <div class="field">
+        <label for="{{ form.codigos.id_for_label }}">Escribe los códigos como en WhatsApp</label>
+        <div class="codigos-rapidos">
+            {{ form.codigos }}
+            <button type="button" class="btn btn-secondary" data-aplicar-codigos>{% icono "check" "icon-sm" %} Marcar</button>
+        </div>
+        <span class="help">Ej.: <b>DT 1-2-3-17, VD 9</b> · para un rango usa “a”: <b>DT 1 a 12</b></span>
+        <span class="error" data-codigos-error hidden></span>
+        {{ form.codigos.errors }}
+    </div>
+
+    <div class="selector-barra">
+        <span><b data-sel-n>0</b> seleccionado<span data-sel-plural>s</span></span>
+        <button type="button" class="btn btn-ghost btn-sm" data-sel-limpiar>{% icono "x" "icon-sm" %} Limpiar</button>
+    </div>
+    <div class="selector-leyenda small muted" data-leyenda>
+        <span><i class="pchip-demo"></i>Disponible</span>
+        <span><i class="pchip-demo is-sel"></i>Seleccionado</span>
+        <span><i class="pchip-demo is-hecho"></i>Ya hecho</span>
+        <span><i class="pchip-demo is-falta"></i>Falta etapa previa</span>
+        <span><i class="pchip-demo is-bloq"></i>Bloqueado</span>
+    </div>
+    <div class="paquetes" data-paquetes>
+        <div class="empty small">{% icono "network" %}Elige el rack para ver sus puntos.</div>
+    </div>
+    <div data-puntos-hidden></div>
+</section>

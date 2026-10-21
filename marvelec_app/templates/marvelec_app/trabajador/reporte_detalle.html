@@ -2,12 +2,12 @@
 {% load marvelec_tags %}
 {% block title %}Reporte - MARVELEC{% endblock %}
 {% block content %}
-<a href="{% url 'marvelec_app:historial_trabajador' %}" class="btn btn-ghost btn-sm mb-2">{% icono "chevron-left" "icon-sm" %} Mis reportes</a>
+<a href="{% url 'marvelec_app:historial_trabajador' %}" class="btn btn-ghost btn-sm mb-2">{% icono "chevron-left" "icon-sm" %} Mi historial</a>
 
 <div class="stack">
     <div class="row-between">
         <div>
-            <h1>{{ reporte.subetapa.nombre }}</h1>
+            <h1>Rack {{ reporte.rack.nombre }}</h1>
             <p class="muted small">{{ reporte.obra.nombre }} · {{ reporte.fecha_hora|date:"l d-m-Y, H:i" }}</p>
         </div>
         {% include "marvelec_app/partials/estado_badge.html" %}
@@ -25,8 +25,8 @@
     <a href="{% url 'marvelec_app:editar_reporte' reporte.pk %}" class="btn btn-lg btn-block">{% icono "edit" %} Corregir reporte</a>
     {% endif %}
     {% elif reporte.estado == "aprobado" %}
-    <div class="banner" style="background:var(--ok-bg);border:0">
-        <span style="color:var(--ok)">{% icono "check-circle" %}</span>
+    <div class="banner banner-ok">
+        {% icono "check-circle" %}
         <div class="banner-body">
             <strong>Aprobado</strong>
             <span class="small">{% if reporte.revisado_por %}por {{ reporte.revisado_por|nombre_usuario }}, {% endif %}{{ reporte.revisado_en|date:"d-m-Y H:i" }}</span>
@@ -39,20 +39,32 @@
     </div>
     {% endif %}
 
+    <div class="card">
+        <div class="card-header"><h3>Etapas registradas</h3><span class="pts">{{ reporte.total_puntos }} total</span></div>
+        <div class="stack">
+            {% for clave, nombre, codigos in grupos %}
+            <div class="etapa-grupo etapa-{{ clave }}">
+                <b>{{ nombre }} <span class="muted">({{ codigos|length }})</span></b>
+                <div class="codigos">{% for c in codigos %}<span>{{ c }}</span>{% endfor %}</div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    {% if reporte.omitidos %}
+    <div class="card">
+        <div class="card-header"><h3>{% icono "alert" %} No registrados</h3><span class="badge badge-pendiente">{{ reporte.omitidos|length }}</span></div>
+        <ul class="omitidos-lista">
+            {% for o in reporte.omitidos %}<li>{% if o.codigo %}<b>{{ o.codigo }}</b>: {% endif %}{{ o.motivo }}</li>{% endfor %}
+        </ul>
+    </div>
+    {% endif %}
+
     {% if reporte.foto %}
     <div class="detalle-foto" data-lightbox="{{ reporte.foto.url }}" data-caption="Foto del avance">
         <img src="{{ reporte.foto.url }}" alt="Foto del avance">
     </div>
     {% endif %}
-
-    <div class="card">
-        <div class="card-header"><h3>Puntos ejecutados</h3><span class="pts">{{ reporte.total_puntos }} total</span></div>
-        <div class="puntos-grid">
-            <div class="punto-box tipo-red"><b>{{ puntos.red }}</b><span>Red</span></div>
-            <div class="punto-box tipo-fuerza"><b>{{ puntos.fuerza }}</b><span>Fuerza</span></div>
-            <div class="punto-box tipo-iluminacion"><b>{{ puntos.iluminacion }}</b><span>Iluminación</span></div>
-        </div>
-    </div>
 
     {% if reporte.comentario %}
     <div class="card">

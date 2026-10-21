@@ -1,0 +1,72 @@
+{% extends "layouts/movil.html" %}
+{% load marvelec_tags %}
+{% block title %}Marcar llegada - MARVELEC{% endblock %}
+{% block content %}
+<div class="mb-3">
+    <h1>Marcar llegada</h1>
+    <p class="muted small">{{ hoy|date:"l j \d\e F" }}</p>
+</div>
+
+{% if asistencia_hoy and asistencia_hoy.estado != "rechazada" %}
+<div class="stack">
+    <div class="banner {% if asistencia_hoy.estado == 'confirmada' %}banner-ok{% else %}banner-warn{% endif %}">
+        {% icono "check-circle" %}
+        <div class="banner-body">
+            <strong>Llegada marcada a las {{ asistencia_hoy.hora|time:"H:i" }}</strong>
+            <span class="small">{% if asistencia_hoy.estado == 'confirmada' %}Confirmada por tu supervisor{% else %}Pendiente de confirmación del supervisor{% endif %} · {{ asistencia_hoy.obra }}</span>
+        </div>
+    </div>
+    {% if asistencia_hoy.foto %}
+    <div class="detalle-foto" data-lightbox="{{ asistencia_hoy.foto.url }}" data-caption="Llegada {{ asistencia_hoy.hora|date:'d-m-Y H:i' }}">
+        <img src="{{ asistencia_hoy.foto.url }}" alt="Foto de llegada">
+    </div>
+    {% endif %}
+    <a href="{% url 'marvelec_app:nuevo_reporte' %}" class="btn btn-lg btn-block">{% icono "plus" %} Reportar avance</a>
+</div>
+{% else %}
+
+{% if asistencia_hoy.estado == "rechazada" %}
+<div class="banner banner-danger mb-3">
+    {% icono "alert" %}
+    <div class="banner-body">
+        <strong>Tu llegada de hoy fue rechazada</strong>
+        <span class="small">{{ asistencia_hoy.motivo_rechazo }} Vuelve a marcarla con una foto clara del lugar.</span>
+    </div>
+</div>
+{% endif %}
+
+<form method="post" enctype="multipart/form-data" class="stack-lg" novalidate
+      data-registro-form="asistencia"
+      data-api-url="{% url 'marvelec_app:api_asistencia' %}"
+      data-exito-url="{% url 'marvelec_app:panel_trabajador' %}">
+    {% csrf_token %}
+    {{ form.latitud }}{{ form.longitud }}{{ form.precision }}
+
+    {% if perfil.obra_asignada %}
+    <input type="hidden" name="obra" value="{{ perfil.obra_asignada.pk }}" data-nombre="{{ perfil.obra_asignada.nombre }}">
+    <div class="card row">{% icono "pin" %} <strong>{{ perfil.obra_asignada.nombre }}</strong></div>
+    {% else %}
+    <section class="card paso">
+        <div class="paso-titulo">Obra</div>
+        {{ form.obra }}{{ form.obra.errors }}
+    </section>
+    {% endif %}
+
+    <section class="card paso">
+        <div class="paso-titulo">Foto del lugar</div>
+        <label class="foto-picker foto-picker-lg">
+            {{ form.foto }}
+            {% icono "camera" %}
+            <strong>Tomar foto</strong>
+            <span class="small">Se abrirá la cámara del teléfono</span>
+        </label>
+        {{ form.foto.errors }}
+        <span class="small muted row" data-gps-estado>{% icono "pin" "icon-sm" %} Buscando ubicación…</span>
+    </section>
+
+    <div class="submit-bar">
+        <button type="submit" class="btn btn-accent btn-lg btn-block">{% icono "check-circle" %} Marcar llegada</button>
+    </div>
+</form>
+{% endif %}
+{% endblock %}

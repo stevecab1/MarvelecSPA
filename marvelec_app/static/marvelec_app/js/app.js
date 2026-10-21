@@ -147,7 +147,8 @@
     // ---------- Centro de notificaciones ----------
     const ICONOS_NOTIF = {
         nuevo_reporte: 'file', reporte_corregido: 'edit', reporte_aprobado: 'check-circle',
-        reporte_observado: 'alert', resumen_diario: 'chart',
+        reporte_observado: 'alert', resumen_diario: 'chart', nueva_incidencia: 'alert',
+        incidencia_liberada: 'check-circle', asistencia_rechazada: 'calendar',
     };
 
     function pintarContadores(n) {

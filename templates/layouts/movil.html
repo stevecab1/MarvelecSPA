@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% load static marvelec_tags %}
 {% block body_class %}app-movil{% endblock %}
-{% block precache %}{% url 'marvelec_app:panel_trabajador' %} {% url 'marvelec_app:nuevo_reporte' %} {% url 'marvelec_app:historial_trabajador' %}{% endblock %}
+{% block precache %}{% url 'marvelec_app:panel_trabajador' %} {% url 'marvelec_app:marcar_asistencia' %} {% url 'marvelec_app:nuevo_reporte' %} {% url 'marvelec_app:nueva_incidencia' %} {% url 'marvelec_app:historial_trabajador' %}{% endblock %}
 {% block layout %}
 {% with vista=request.resolver_match.url_name %}
 <header class="m-header">
@@ -22,14 +22,14 @@
         </form>
     </div>
 </header>
-<div class="net-status">{% icono "cloud-off" "icon-sm" %} Sin conexión — tus reportes se guardan en el teléfono</div>
+<div class="net-status">{% icono "cloud-off" "icon-sm" %} Sin conexión — lo que registres se guarda en el teléfono</div>
 
 <main class="m-main">
     {% block content %}{% endblock %}
 </main>
 
 <nav class="tabbar" aria-label="Navegación principal">
-    <a href="{% url 'marvelec_app:panel_trabajador' %}" class="tab {% if vista == 'panel_trabajador' %}is-active{% endif %}">
+    <a href="{% url 'marvelec_app:panel_trabajador' %}" class="tab {% if vista == 'panel_trabajador' or vista == 'marcar_asistencia' or vista == 'nueva_incidencia' %}is-active{% endif %}">
         {% icono "home" %}<span>Inicio</span>
     </a>
     <a href="{% url 'marvelec_app:historial_trabajador' %}" class="tab {% if vista == 'historial_trabajador' or vista == 'reporte_detalle' or vista == 'editar_reporte' %}is-active{% endif %}">

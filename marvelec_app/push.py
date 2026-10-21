@@ -150,19 +150,17 @@ def enviar_notificacion_email(reporte, destinatarios):
     """Envía un correo a los supervisores/gerentes cuando se crea un reporte."""
     from django.core.mail import send_mail
 
-    trabajador_nombre = reporte.trabajador.get_full_name() or reporte.trabajador.username
+    from .models import ReporteAvance
 
-    conteo = {}
-    for registro in reporte.registros.all():
-        conteo[registro.get_tipo_punto_display()] = registro.cantidad
-
-    detalle_puntos = '\n'.join(
-        f'  - {tipo}: {cant}' for tipo, cant in conteo.items() if cant > 0
-    )
+    reporte = ReporteAvance.objects.select_related('trabajador', 'obra', 'rack').prefetch_related(
+        'avances__punto__tipo'
+    ).get(pk=reporte.pk)
+    trabajador_nombre = reporte.nombre_trabajador
+    detalle = '\n'.join(f'  - {etapa}: {", ".join(codigos)}' for _, etapa, codigos in reporte.codigos_por_etapa())
 
     asunto = (
         f'[MARVELEC] {trabajador_nombre} reportó {reporte.total_puntos} puntos '
-        f'en {reporte.obra.nombre}'
+        f'en {reporte.obra.nombre} (Rack {reporte.rack.nombre})'
     )
 
     mensaje = (
@@ -170,12 +168,15 @@ def enviar_notificacion_email(reporte, destinatarios):
         f'========================\n\n'
         f'Trabajador: {trabajador_nombre}\n'
         f'Obra: {reporte.obra.nombre}\n'
-        f'Subetapa: {reporte.subetapa.nombre}\n'
+        f'Rack: {reporte.rack.nombre}\n'
         f'Fecha: {timezone.localtime(reporte.fecha_hora).strftime("%d-%m-%Y %H:%M")}\n\n'
-        f'Puntos ejecutados ({reporte.total_puntos} total):\n'
-        f'{detalle_puntos}\n'
+        f'Etapas registradas ({reporte.total_puntos} en total):\n'
+        f'{detalle}\n'
     )
 
+    if reporte.omitidos:
+        mensaje += f'\nNo registrados ({len(reporte.omitidos)}):\n'
+        mensaje += '\n'.join(f"  - {o['codigo']}: {o['motivo']}" for o in reporte.omitidos[:20]) + '\n'
     if reporte.comentario:
         mensaje += f'\nComentario: {reporte.comentario}\n'
 

@@ -1,0 +1,75 @@
+{% extends "layouts/escritorio.html" %}
+{% load static marvelec_tags %}
+{% block title %}Asistencia - MARVELEC{% endblock %}
+{% block page_title %}Asistencia del {{ fecha|date:"l d-m-Y" }}{% endblock %}
+{% block page_subtitle %}{{ marcaron }} de {{ filas|length }} marcaron llegada · {{ pendientes }} por confirmar{% endblock %}
+{% block topbar_actions %}
+<a class="btn btn-secondary hide-mobile" href="{% url 'marvelec_app:asistencia_mes' %}?mes={{ fecha|date:'Y-m' }}{% if obra_id %}&obra={{ obra_id }}{% endif %}">{% icono "table" "icon-sm" %} Vista mensual</a>
+{% endblock %}
+{% block content %}
+<div class="stack-lg">
+    <div class="row-between">
+        <div class="row">
+            <a class="btn btn-secondary btn-sm" href="?fecha={{ anterior|date:'Y-m-d' }}{% if obra_id %}&obra={{ obra_id }}{% endif %}">{% icono "chevron-left" "icon-sm" %} Día anterior</a>
+            {% if siguiente %}<a class="btn btn-secondary btn-sm" href="?fecha={{ siguiente|date:'Y-m-d' }}{% if obra_id %}&obra={{ obra_id }}{% endif %}">Día siguiente {% icono "chevron-right" "icon-sm" %}</a>{% endif %}
+            {% if fecha != hoy %}<a class="btn btn-ghost btn-sm" href="?">Hoy</a>{% endif %}
+        </div>
+        <form method="get" class="row form-inline">
+            <input type="date" name="fecha" value="{{ fecha|date:'Y-m-d' }}" max="{{ hoy|date:'Y-m-d' }}">
+            {% if not obra_fija %}
+            <select name="obra" style="max-width:220px">
+                <option value="">Todas las obras</option>
+                {% for o in obras_disponibles %}<option value="{{ o.pk }}" {% if o.pk == obra_id %}selected{% endif %}>{{ o.nombre }}</option>{% endfor %}
+            </select>
+            {% endif %}
+            <button type="submit" class="btn btn-sm">Ver</button>
+        </form>
+    </div>
+
+    {% if pendientes %}
+    <form method="post" action="{% url 'marvelec_app:confirmar_asistencias' %}" class="banner">
+        {% csrf_token %}
+        <input type="hidden" name="next" value="{{ request.get_full_path }}">
+        {% for p, a in filas %}{% if a and a.estado == "pendiente" %}<input type="hidden" name="ids" value="{{ a.pk }}">{% endif %}{% endfor %}
+        {% icono "info" %}
+        <div class="banner-body small">Revisa las fotos y confirma. Las llegadas no confirmadas no cuentan como jornada trabajada.</div>
+        <button type="submit" class="btn btn-success btn-sm">{% icono "check" "icon-sm" %} Confirmar las {{ pendientes }} pendientes</button>
+    </form>
+    {% endif %}
+
+    <div class="asistencia-grid">
+        {% for p, a in filas %}
+        <article class="asistencia-card {% if not a %}is-falta{% else %}is-{{ a.estado }}{% endif %}" data-asistencia>
+            {% if a and a.foto %}
+            <img class="asistencia-foto" src="{{ a.foto.url }}" alt="Foto de llegada de {{ p.usuario|nombre_usuario }}" loading="lazy"
+                 data-lightbox="{{ a.foto.url }}" data-caption="{{ p.usuario|nombre_usuario }} · {{ a.hora|date:'d-m-Y H:i' }}">
+            {% else %}
+            <div class="asistencia-foto">{% icono "camera" "icon-lg" %}<span class="small">{% if a %}Sin foto{% else %}No marcó llegada{% endif %}</span></div>
+            {% endif %}
+            <div class="asistencia-info">
+                <div class="row-between">
+                    <b>{{ p.usuario|nombre_usuario }}</b>
+                    {% if a %}<span class="badge badge-dot badge-{{ a.estado }}" data-asistencia-estado>{{ a.get_estado_display }}</span>{% else %}<span class="badge">Sin marca</span>{% endif %}
+                </div>
+                {% if a %}
+                <span class="small muted">{% icono "clock" "icon-sm" %} {{ a.hora|time:"H:i" }}{% if not obra_fija %} · {{ a.obra }}{% endif %}{% if a.enviado_offline %} · enviada sin señal{% endif %}</span>
+                <span class="small">{% if a.url_mapa %}<a href="{{ a.url_mapa }}" target="_blank" rel="noopener">{% icono "pin" "icon-sm" %} Ubicación{% if a.precision %} (±{{ a.precision }} m){% endif %}</a>{% else %}<span class="muted">Sin GPS</span>{% endif %}</span>
+                {% if a.motivo_rechazo %}<span class="small" style="color:var(--danger)">Rechazo: {{ a.motivo_rechazo }}</span>{% endif %}
+                <div class="row mt-1" data-asistencia-acciones data-url="{% url 'marvelec_app:revisar_asistencia' a.pk %}">
+                    {% if a.estado != "confirmada" %}<button type="button" class="btn btn-success btn-sm" data-accion-asistencia="confirmar">{% icono "check" "icon-sm" %} Confirmar</button>{% endif %}
+                    {% if a.estado != "rechazada" %}<button type="button" class="btn btn-warn btn-sm" data-accion-asistencia="rechazar">{% icono "x" "icon-sm" %} Rechazar</button>{% endif %}
+                </div>
+                {% else %}
+                <span class="small muted">{{ p.obra_asignada|default:"Sin obra asignada" }}</span>
+                {% endif %}
+            </div>
+        </article>
+        {% empty %}
+        <div class="card empty">{% icono "users" %}<p>No hay trabajadores a cargo.</p></div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}
+{% block page_scripts %}
+<script src="{% static 'marvelec_app/js/supervision.js' %}"></script>
+{% endblock %}

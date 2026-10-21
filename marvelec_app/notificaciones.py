@@ -72,22 +72,27 @@ def url_reporte(reporte):
     return reverse('marvelec_app:reporte_detalle', args=[reporte.pk])
 
 
+def texto_etapas(reporte):
+    """'Bajada de puntos (14), Peinado de rack (3)'."""
+    return ', '.join(f'{nombre} ({n})' for _, nombre, n in reporte.resumen_etapas())
+
+
 # --- Eventos del sistema ---
 
 def notificar_nuevo_reporte(reporte, corregido=False):
     """Avisa a supervisores y gerencia de la obra que llegó (o se corrigió) un reporte."""
     destinatarios = [u for u in revisores_de_obra(reporte.obra_id) if u.pk != reporte.trabajador_id]
+    detalle = f'{texto_etapas(reporte)} · Rack {reporte.rack.nombre}'
     if corregido:
         tipo = Notificacion.TIPO_REPORTE_CORREGIDO
         titulo = 'Reporte corregido'
-        cuerpo = f'{reporte.nombre_trabajador} corrigió su reporte en {reporte.obra.nombre} / {reporte.subetapa.nombre}'
+        cuerpo = f'{reporte.nombre_trabajador} corrigió su reporte: {detalle}'
     else:
         tipo = Notificacion.TIPO_NUEVO_REPORTE
-        titulo = 'Nuevo reporte de avance'
-        cuerpo = (
-            f'{reporte.nombre_trabajador} reportó {reporte.total_puntos} puntos '
-            f'en {reporte.obra.nombre} / {reporte.subetapa.nombre}'
-        )
+        titulo = f'Nuevo avance: {reporte.total_puntos} puntos'
+        cuerpo = f'{reporte.nombre_trabajador}: {detalle}'
+        if reporte.omitidos:
+            cuerpo += f' ({len(reporte.omitidos)} omitido{"s" if len(reporte.omitidos) != 1 else ""})'
     notificar(destinatarios, tipo, titulo, cuerpo, url_reporte(reporte), reporte)
 
     # Respaldo por correo (sólo reportes nuevos).
@@ -102,9 +107,48 @@ def notificar_revision(reporte):
     if reporte.estado == reporte.ESTADO_APROBADO:
         tipo = Notificacion.TIPO_REPORTE_APROBADO
         titulo = 'Reporte aprobado'
-        cuerpo = f'Tu reporte de {reporte.total_puntos} puntos en {reporte.subetapa.nombre} fue aprobado.'
+        cuerpo = f'Tu reporte del rack {reporte.rack.nombre} ({texto_etapas(reporte)}) fue aprobado.'
     else:
         tipo = Notificacion.TIPO_REPORTE_OBSERVADO
         titulo = 'Reporte observado: requiere corrección'
         cuerpo = reporte.comentario_revision or 'Tu supervisor dejó una observación en tu reporte.'
     notificar([reporte.trabajador], tipo, titulo, cuerpo, url_reporte(reporte), reporte)
+
+
+def notificar_incidencias(incidencias):
+    """Aviso inmediato a los revisores: hay puntos bloqueados."""
+    primera = incidencias[0]
+    rack = primera.punto.rack
+    codigos = ', '.join(i.punto.codigo for i in incidencias[:6])
+    if len(incidencias) > 6:
+        codigos += f' y {len(incidencias) - 6} más'
+    nombre = primera.reportada_por.get_full_name() or primera.reportada_por.username
+    destinatarios = [u for u in revisores_de_obra(rack.obra_id) if u.pk != primera.reportada_por_id]
+    url = reverse('marvelec_app:incidencias') + f'?rack={rack.pk}'
+    notificar(
+        destinatarios, Notificacion.TIPO_NUEVA_INCIDENCIA,
+        f'Incidencia: {primera.tipo.nombre}',
+        f'{nombre} bloqueó {codigos} (Rack {rack.nombre}).',
+        url,
+    )
+
+
+def notificar_liberacion(incidencia):
+    quien = incidencia.liberada_por.get_full_name() or incidencia.liberada_por.username if incidencia.liberada_por else ''
+    cuerpo = f'{incidencia.punto.codigo} (Rack {incidencia.punto.rack.nombre}) ya puede avanzar.'
+    if incidencia.comentario_liberacion:
+        cuerpo += f' {incidencia.comentario_liberacion}'
+    notificar(
+        [incidencia.reportada_por], Notificacion.TIPO_INCIDENCIA_LIBERADA,
+        f'Liberado: {incidencia.tipo.nombre}' + (f' por {quien}' if quien else ''),
+        cuerpo, reverse('marvelec_app:panel_trabajador'),
+    )
+
+
+def notificar_asistencia_rechazada(asistencia):
+    notificar(
+        [asistencia.trabajador], Notificacion.TIPO_ASISTENCIA_RECHAZADA,
+        f'Llegada del {asistencia.fecha:%d-%m} rechazada',
+        asistencia.motivo_rechazo or 'Tu supervisor no confirmó tu llegada.',
+        reverse('marvelec_app:marcar_asistencia'),
+    )

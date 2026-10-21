@@ -2,7 +2,7 @@
 {% load static marvelec_tags %}
 {% block title %}Reporte #{{ reporte.pk }} - MARVELEC{% endblock %}
 {% block page_title %}Reporte #{{ reporte.pk }}{% endblock %}
-{% block page_subtitle %}{{ reporte.obra.nombre }} / {{ reporte.subetapa.nombre }}{% endblock %}
+{% block page_subtitle %}{{ reporte.obra.nombre }} · Rack {{ reporte.rack.nombre }}{% endblock %}
 {% block topbar_actions %}
 {% if siguiente_pendiente %}
 <a href="{% url 'marvelec_app:reporte_detalle' siguiente_pendiente.pk %}" class="btn btn-secondary btn-sm hide-mobile">Siguiente pendiente {% icono "chevron-right" "icon-sm" %}</a>
@@ -11,16 +11,37 @@
 {% block content %}
 <div class="detalle">
     <div class="stack">
+        <section class="card">
+            <div class="card-header">
+                <h3>Etapas registradas</h3>
+                <a href="{% url 'marvelec_app:rack_detalle' reporte.rack_id %}" class="btn btn-ghost btn-sm">Ver rack {{ reporte.rack.nombre }} {% icono "chevron-right" "icon-sm" %}</a>
+            </div>
+            <div class="stack">
+                {% for clave, nombre, codigos in grupos %}
+                <div class="etapa-grupo etapa-{{ clave }}">
+                    <b>{{ nombre }} <span class="muted">({{ codigos|length }})</span></b>
+                    <div class="codigos">{% for c in codigos %}<span>{{ c }}</span>{% endfor %}</div>
+                </div>
+                {% empty %}
+                <p class="muted small">Este reporte no tiene etapas registradas.</p>
+                {% endfor %}
+            </div>
+        </section>
+
+        {% if reporte.omitidos %}
+        <section class="card">
+            <div class="card-header"><h3>{% icono "alert" %} No registrados por el sistema</h3><span class="badge badge-pendiente">{{ reporte.omitidos|length }}</span></div>
+            <ul class="omitidos-lista">
+                {% for o in reporte.omitidos %}<li>{% if o.codigo %}<b>{{ o.codigo }}</b>: {% endif %}{{ o.motivo }}</li>{% endfor %}
+            </ul>
+        </section>
+        {% endif %}
+
         {% if reporte.foto %}
         <div class="detalle-foto" data-lightbox="{{ reporte.foto.url }}"
              data-caption="{{ reporte.nombre_trabajador }} — {{ reporte.fecha_hora|date:'d-m-Y H:i' }}">
             <img src="{{ reporte.foto.url }}" alt="Foto del avance">
         </div>
-        <div class="row">
-            <a href="{{ reporte.foto.url }}" download class="btn btn-secondary btn-sm">{% icono "download" "icon-sm" %} Descargar foto</a>
-        </div>
-        {% else %}
-        <div class="card empty">{% icono "image" %}<p>Este reporte no tiene foto del avance.</p></div>
         {% endif %}
 
         {% if reporte.comentario %}
@@ -42,15 +63,16 @@
             </div>
             <dl class="dl">
                 <dt>Obra</dt><dd>{{ reporte.obra.nombre }}</dd>
-                <dt>Subetapa</dt><dd>{{ reporte.subetapa.nombre }}</dd>
-                <dt>Total</dt><dd><span class="pts">{{ reporte.total_puntos }} puntos</span></dd>
+                <dt>Rack</dt><dd>{{ reporte.rack.nombre }}</dd>
+                <dt>Total</dt><dd><span class="pts">{{ reporte.total_puntos }} etapas</span></dd>
                 {% if reporte.enviado_offline %}<dt>Envío</dt><dd><span class="badge badge-offline">Guardado sin señal y enviado después</span></dd>{% endif %}
             </dl>
-            <div class="puntos-grid mt-3">
-                <div class="punto-box tipo-red"><b>{{ puntos.red }}</b><span>Red</span></div>
-                <div class="punto-box tipo-fuerza"><b>{{ puntos.fuerza }}</b><span>Fuerza</span></div>
-                <div class="punto-box tipo-iluminacion"><b>{{ puntos.iluminacion }}</b><span>Iluminación</span></div>
+            {% if puede_revisar and not asistencia_confirmada %}
+            <div class="banner banner-warn mt-3">
+                {% icono "alert" %}
+                <div class="banner-body small"><strong>Sin asistencia confirmada ese día</strong>Revisa la asistencia del trabajador antes de aprobar.</div>
             </div>
+            {% endif %}
         </section>
 
         {% if puede_revisar %}

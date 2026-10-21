@@ -2,13 +2,13 @@
 {% load static marvelec_tags %}
 {% block title %}Reportes - MARVELEC{% endblock %}
 {% block page_title %}Reportes de avance{% endblock %}
-{% block page_subtitle %}{{ pagina.paginator.count }} reporte{{ pagina.paginator.count|pluralize }} · {{ total_puntos }} puntos{% endblock %}
+{% block page_subtitle %}{{ pagina.paginator.count }} reporte{{ pagina.paginator.count|pluralize }} · {{ total_puntos }} etapas registradas{% endblock %}
 {% block topbar_actions %}
 <a class="btn btn-secondary" href="{% url 'marvelec_app:exportar_excel' %}?{{ querystring }}">{% icono "download" "icon-sm" %} <span class="hide-mobile">Exportar a Excel</span></a>
 {% endblock %}
 {% block content %}
 <div class="stack">
-    {% include "marvelec_app/partials/filtros.html" with con_fechas=True con_estado=True %}
+    {% include "marvelec_app/partials/filtros.html" with con_fechas=True con_estado=True con_etapa=True %}
 
     <div class="card card-flush">
         <div class="table-wrap">
@@ -17,9 +17,9 @@
                     <tr>
                         <th>Fecha</th>
                         <th>Trabajador</th>
-                        <th>Obra / Subetapa</th>
+                        <th>Obra / Rack</th>
                         <th class="t-right">Puntos</th>
-                        <th>Desglose</th>
+                        <th>Etapas</th>
                         <th>Foto</th>
                         <th>Estado</th>
                         <th>Comentario</th>
@@ -35,7 +35,7 @@
                                 <b>{{ reporte.nombre_trabajador }}</b>
                             </span>
                         </td>
-                        <td>{{ reporte.obra.nombre }}<br><span class="muted small">{{ reporte.subetapa.nombre }}</span></td>
+                        <td>{{ reporte.obra.nombre }}<br><span class="muted small">Rack {{ reporte.rack.nombre }}</span></td>
                         <td class="t-right"><span class="pts">{{ reporte.total_puntos }}</span></td>
                         <td>{% include "marvelec_app/partials/desglose.html" %}</td>
                         <td>

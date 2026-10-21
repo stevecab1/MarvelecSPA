@@ -1,0 +1,65 @@
+{% extends "layouts/escritorio.html" %}
+{% load static marvelec_tags %}
+{% block title %}Asistencia mensual - MARVELEC{% endblock %}
+{% block page_title %}Asistencia de {{ primero|date:"F Y" }}{% endblock %}
+{% block page_subtitle %}Días confirmados por trabajador · base para remuneraciones{% endblock %}
+{% block topbar_actions %}
+<a class="btn btn-secondary" href="{% url 'marvelec_app:exportar_asistencia' %}?{{ querystring }}">{% icono "download" "icon-sm" %} <span class="hide-mobile">Excel</span></a>
+{% endblock %}
+{% block content %}
+<div class="stack-lg">
+    <div class="row-between">
+        <div class="row">
+            <a class="btn btn-secondary btn-sm" href="?mes={{ anterior|date:'Y-m' }}{% if obra_id %}&obra={{ obra_id }}{% endif %}">{% icono "chevron-left" "icon-sm" %} {{ anterior|date:"F" }}</a>
+            {% if siguiente %}<a class="btn btn-secondary btn-sm" href="?mes={{ siguiente|date:'Y-m' }}{% if obra_id %}&obra={{ obra_id }}{% endif %}">{{ siguiente|date:"F" }} {% icono "chevron-right" "icon-sm" %}</a>{% endif %}
+            <a class="btn btn-ghost btn-sm" href="{% url 'marvelec_app:asistencia_dia' %}">{% icono "calendar" "icon-sm" %} Vista del día</a>
+        </div>
+        {% if not obra_fija %}
+        <form method="get" class="row form-inline">
+            <input type="hidden" name="mes" value="{{ primero|date:'Y-m' }}">
+            <select name="obra" onchange="this.form.submit()" style="max-width:240px">
+                <option value="">Todas las obras</option>
+                {% for o in obras_disponibles %}<option value="{{ o.pk }}" {% if o.pk == obra_id %}selected{% endif %}>{{ o.nombre }}</option>{% endfor %}
+            </select>
+        </form>
+        {% endif %}
+    </div>
+
+    <div class="card card-flush">
+        <div class="table-wrap">
+            <table class="table asistencia-mes">
+                <thead>
+                    <tr>
+                        <th>Trabajador</th>
+                        {% for d in dias %}<th class="dia {% if d.weekday >= 5 %}finde{% endif %}" title="{{ d|date:'l d-m' }}">{{ d.day }}</th>{% endfor %}
+                        <th class="t-right">Confirm.</th>
+                        <th class="t-right">Pend.</th>
+                        <th class="t-right">Rech.</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for f in filas %}
+                    <tr>
+                        <td class="nowrap"><b>{{ f.perfil.usuario|nombre_usuario }}</b></td>
+                        {% for c in f.celdas %}
+                        <td class="dia">{% if c %}<a href="{% url 'marvelec_app:asistencia_dia' %}?fecha={{ c.fecha|date:'Y-m-d' }}" class="marca marca-{{ c.estado }}" title="{{ c.get_estado_display }} · {{ c.hora|time:'H:i' }}"></a>{% endif %}</td>
+                        {% endfor %}
+                        <td class="t-right num"><b>{{ f.confirmados }}</b></td>
+                        <td class="t-right num">{{ f.pendientes }}</td>
+                        <td class="t-right num">{{ f.rechazados }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="{{ dias|length|add:4 }}"><div class="empty">{% icono "users" %}No hay trabajadores a cargo.</div></td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <div class="leyenda-etapas small muted">
+        <span><i class="marca marca-confirmada"></i>Confirmada</span>
+        <span><i class="marca marca-pendiente"></i>Pendiente</span>
+        <span><i class="marca marca-rechazada"></i>Rechazada</span>
+        <span>Vacío: no marcó</span>
+    </div>
+</div>
+{% endblock %}

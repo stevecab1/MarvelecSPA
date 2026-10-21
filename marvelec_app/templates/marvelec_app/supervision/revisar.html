@@ -5,7 +5,7 @@
 {% block page_subtitle %}<span data-cola-total>{{ total }}</span> reporte{{ total|pluralize }} pendiente{{ total|pluralize }} · los más antiguos primero{% endblock %}
 {% block content %}
 <div class="stack">
-    {% include "marvelec_app/partials/filtros.html" %}
+    {% include "marvelec_app/partials/filtros.html" with con_etapa=True %}
 
     {% if pagina.object_list %}
     <form method="post" action="{% url 'marvelec_app:revisar_masivo' %}" data-form-masivo>
@@ -44,12 +44,25 @@
                     <label class="review-check"><input type="checkbox" form="" value="{{ reporte.pk }}" data-seleccion> Seleccionar</label>
                 </div>
                 <div class="row">
-                    {% icono "pin" "icon-sm" %}<span><b>{{ reporte.obra.nombre }}</b> / {{ reporte.subetapa.nombre }}</span>
+                    {% icono "pin" "icon-sm" %}<span><b>Rack {{ reporte.rack.nombre }}</b> · {{ reporte.obra.nombre }}</span>
+                    {% if reporte.sin_asistencia %}<span class="badge badge-pendiente" title="El trabajador no tiene la llegada de ese día confirmada">{% icono "alert" "icon-sm" %} Sin asistencia confirmada</span>{% endif %}
                 </div>
                 <div class="row">
                     <span class="pts" style="font-size:1.3rem">{{ reporte.total_puntos }} pts</span>
                     {% include "marvelec_app/partials/desglose.html" %}
                 </div>
+                {% for clave, nombre, codigos in reporte.codigos_por_etapa %}
+                <div class="etapa-grupo etapa-{{ clave }} small">
+                    <b>{{ nombre }}</b>
+                    <div class="codigos">{% for c in codigos %}<span>{{ c }}</span>{% endfor %}</div>
+                </div>
+                {% endfor %}
+                {% if reporte.omitidos %}
+                <details class="small">
+                    <summary>{{ reporte.omitidos|length }} no registrado{{ reporte.omitidos|length|pluralize }} por el sistema</summary>
+                    <ul class="omitidos-lista">{% for o in reporte.omitidos %}<li>{% if o.codigo %}<b>{{ o.codigo }}</b>: {% endif %}{{ o.motivo }}</li>{% endfor %}</ul>
+                </details>
+                {% endif %}
                 {% if reporte.comentario %}<div class="comentario">{{ reporte.comentario|linebreaksbr }}</div>{% endif %}
                 {% if reporte.comentario_revision %}<div class="small muted">Observación anterior: {{ reporte.comentario_revision }}</div>{% endif %}
                 <a href="{% url 'marvelec_app:reporte_detalle' reporte.pk %}" class="small">Ver detalle</a>

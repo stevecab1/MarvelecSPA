@@ -1,0 +1,60 @@
+{% extends "layouts/escritorio.html" %}
+{% load static marvelec_tags %}
+{% block title %}Rack {{ rack.nombre }} - MARVELEC{% endblock %}
+{% block page_title %}Rack {{ rack.nombre }}{% endblock %}
+{% block page_subtitle %}{{ rack.obra.nombre }}{% if rack.ubicacion %} · {{ rack.ubicacion }}{% endif %} · {{ fila.total }} puntos{% endblock %}
+{% block topbar_actions %}
+<a class="btn btn-secondary hide-mobile" href="{% url 'marvelec_app:exportar_estado_puntos' %}?rack={{ rack.pk }}">{% icono "download" "icon-sm" %} Excel</a>
+{% endblock %}
+{% block content %}
+<div class="stack-lg">
+    <a href="{% url 'marvelec_app:avance_obra' %}?obra={{ rack.obra_id }}" class="btn btn-ghost btn-sm" style="justify-self:start">{% icono "chevron-left" "icon-sm" %} Avance de obra</a>
+
+    <section class="card">
+        <div class="etapas-resumen">
+            {% for c in fila.etapas %}
+            <a class="etapa-resumen etapa-{{ c.clave }} {% if pendiente == c.clave %}is-active{% endif %}"
+               href="?pendiente={{ c.clave }}" title="Ver puntos sin esta etapa">
+                <span class="small">{{ c.nombre }}</span>
+                <b class="num">{{ c.n }}<span class="muted small">/{{ fila.total }}</span></b>
+                <span class="bar bar-etapa"><i style="width:{{ c.pct }}%"></i></span>
+            </a>
+            {% endfor %}
+        </div>
+    </section>
+
+    <div class="row-between">
+        <div class="segmented">
+            <a href="?" class="{% if not pendiente and not solo_bloqueados %}is-active{% endif %}">Todos</a>
+            <a href="?bloqueados=1" class="{% if solo_bloqueados %}is-active{% endif %}">Bloqueados ({{ fila.bloqueados }})</a>
+        </div>
+        {% if pendiente_nombre %}<span class="small muted">Mostrando puntos <b>sin {{ pendiente_nombre|lower }}</b> · <a href="?">ver todos</a></span>{% endif %}
+        <div class="leyenda-etapas small muted">
+            {% for e in etapas_lista %}<span><i class="tipo-dot etapa-{{ e.clave }}"></i>{{ e.corto }}</span>{% endfor %}
+        </div>
+    </div>
+
+    {% for g in grupos %}
+    <section class="card">
+        <div class="card-header">
+            <h3>{% if g.paquete %}Paquete {{ g.paquete.numero|stringformat:"02d" }}{% else %}Sin paquete{% endif %}</h3>
+            <span class="small muted">
+                {% if g.paquete.zona %}{{ g.paquete.zona.nombre }} · {% endif %}{% if g.paquete.metros %}{{ g.paquete.metros }} m · {% endif %}{{ g.puntos|length }} punto{{ g.puntos|length|pluralize }}
+            </span>
+        </div>
+        <div class="ptiles">
+            {% for p in g.puntos %}
+            <a class="ptile {% if p.bloqueo %}is-bloq{% elif p.completo %}is-cert{% endif %}" href="{% url 'marvelec_app:punto_detalle' p.pk %}"
+               title="{{ p.codigo }}: {{ p.n_etapas }} de {{ etapas_lista|length }} etapas{% if p.bloqueo %} · bloqueado: {{ p.bloqueo }}{% endif %}">
+                <b>{{ p.codigo }}</b>
+                <span class="etapas-dots">{% for e in etapas_lista %}<i class="etapa-{{ e.clave }}{% if e.clave in p.etapas_hechas %} on{% endif %}"></i>{% endfor %}</span>
+                <small>{% if p.bloqueo %}{{ p.bloqueo }}{% elif p.completo %}Certificado{% else %}Sigue: {{ p.siguiente }}{% endif %}</small>
+            </a>
+            {% endfor %}
+        </div>
+    </section>
+    {% empty %}
+    <div class="card empty">{% icono "check-circle" %}<p>No hay puntos con este filtro.</p></div>
+    {% endfor %}
+</div>
+{% endblock %}

@@ -1,0 +1,140 @@
+{% extends "layouts/escritorio.html" %}
+{% load static marvelec_tags %}
+{% block title %}Avance de obra - MARVELEC{% endblock %}
+{% block page_title %}Avance de obra{% endblock %}
+{% block page_subtitle %}{% if obra %}{{ obra.nombre }} · puntos por etapa contra el total cargado{% else %}Sin obras{% endif %}{% endblock %}
+{% block topbar_actions %}
+{% if obra and total.total %}
+<a class="btn btn-secondary hide-mobile" href="{% url 'marvelec_app:exportar_estado_puntos' %}?obra={{ obra.pk }}">{% icono "download" "icon-sm" %} Estado de puntos</a>
+{% endif %}
+{% endblock %}
+{% block content %}
+<div class="stack-lg">
+    {% if not obra_fija and obras_disponibles|length > 1 %}
+    <form method="get" class="row form-inline">
+        <label for="f-obra-avance" class="label">Obra</label>
+        <select name="obra" id="f-obra-avance" onchange="this.form.submit()" style="max-width:340px">
+            {% for o in obras_disponibles %}<option value="{{ o.pk }}" {% if o.pk == obra.pk %}selected{% endif %}>{{ o.nombre }}</option>{% endfor %}
+        </select>
+    </form>
+    {% endif %}
+
+    {% if not obra %}
+    <div class="card empty">{% icono "table" %}<p>No hay obras registradas.</p></div>
+    {% elif not total.total %}
+    <div class="card empty">
+        {% icono "upload" %}
+        <h3>Aún no hay puntos cargados en {{ obra.nombre }}</h3>
+        <p class="mt-1">Sube la planilla de paquetes para medir el avance real contra el total de la obra.</p>
+        <a href="{% url 'marvelec_app:cargar_puntos' %}" class="btn mt-2">{% icono "upload" "icon-sm" %} Cargar puntos</a>
+    </div>
+    {% else %}
+
+    <div class="kpis">
+        <div class="kpi">
+            <span class="kpi-label">{% icono "network" %} Puntos de la obra</span>
+            <span class="kpi-value">{{ total.total }}</span>
+            <span class="kpi-hint">{{ filas|length }} rack{{ filas|length|pluralize }}</span>
+        </div>
+        <div class="kpi">
+            <span class="kpi-label">{% icono "check-circle" %} Certificados</span>
+            <span class="kpi-value">{{ pct_certificado }}%</span>
+            <span class="kpi-hint">{{ total.certificados }} de {{ total.total }}</span>
+        </div>
+        <a class="kpi {% if total.bloqueados %}kpi-danger{% endif %}" href="{% url 'marvelec_app:incidencias' %}?obra={{ obra.pk }}">
+            <span class="kpi-label">{% icono "alert" %} Bloqueados</span>
+            <span class="kpi-value">{{ total.bloqueados }}</span>
+            <span class="kpi-hint">por incidencias abiertas</span>
+        </a>
+        <div class="kpi">
+            <span class="kpi-label">{% icono "calendar" %} Término estimado</span>
+            <span class="kpi-value" style="font-size:1.3rem">{% if fin_estimado %}{{ fin_estimado|date:"d-m-Y" }}{% else %}—{% endif %}</span>
+            <span class="kpi-hint">{% if not fin_estimado %}falta ritmo en alguna etapa{% elif obra.fecha_termino_planificada %}planificado {{ obra.fecha_termino_planificada|date:"d-m-Y" }}{% else %}sin fecha planificada{% endif %}</span>
+        </div>
+        <div class="kpi {% if atraso and atraso > 0 %}kpi-danger{% endif %}">
+            <span class="kpi-label">{% icono "clock" %} Atraso estimado</span>
+            <span class="kpi-value">{% if atraso is None %}—{% elif atraso > 0 %}{{ atraso }} días{% else %}Al día{% endif %}</span>
+            <span class="kpi-hint">{% if atraso is None %}define la fecha planificada en Obras{% elif atraso > 0 %}respecto de lo planificado{% else %}{{ holgura }} día{{ holgura|pluralize }} de holgura{% endif %}</span>
+        </div>
+    </div>
+
+    <section class="card card-flush">
+        <div class="card-header"><h3>{% icono "table" %} Avance por rack y etapa</h3><span class="small muted">Haz clic en un rack para ver sus puntos</span></div>
+        <div class="table-wrap">
+            <table class="table matriz">
+                <thead>
+                    <tr>
+                        <th>Rack</th>
+                        <th class="t-right">Puntos</th>
+                        {% for e in estandares %}<th class="etapa-{{ e.clave }}"><i class="tipo-dot"></i>{{ e.corto }}</th>{% endfor %}
+                        <th class="t-right">Bloq.</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for f in filas %}
+                    <tr class="is-link" data-href="{% url 'marvelec_app:rack_detalle' f.rack.pk %}">
+                        <td><b>{{ f.nombre }}</b>{% if f.rack.ubicacion %}<br><span class="small muted">{{ f.rack.ubicacion }}</span>{% endif %}</td>
+                        <td class="t-right num">{{ f.total }}</td>
+                        {% for c in f.etapas %}
+                        <td class="etapa-{{ c.clave }}">
+                            <div class="celda-avance" title="{{ c.n }} de {{ f.total }}">
+                                <span class="num">{{ c.pct }}%</span>
+                                <span class="bar bar-etapa"><i style="width:{{ c.pct }}%"></i></span>
+                            </div>
+                        </td>
+                        {% endfor %}
+                        <td class="t-right">{% if f.bloqueados %}<span class="badge badge-observado">{{ f.bloqueados }}</span>{% else %}<span class="muted">0</span>{% endif %}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <td><b>Total obra</b></td>
+                        <td class="t-right num"><b>{{ total.total }}</b></td>
+                        {% for c in total.etapas %}
+                        <td class="etapa-{{ c.clave }}"><b class="num">{{ c.n }}</b> <span class="small muted">({{ c.pct }}%)</span></td>
+                        {% endfor %}
+                        <td class="t-right"><b>{{ total.bloqueados }}</b></td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </section>
+
+    <section class="card card-flush">
+        <div class="card-header"><h3>{% icono "chart" %} Proyección por etapa</h3><span class="small muted">Ritmo real de los últimos 14 días (lunes a viernes)</span></div>
+        <div class="table-wrap">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Etapa</th>
+                        <th>Avance</th>
+                        <th class="t-right">Faltan</th>
+                        <th class="t-right">Ritmo real</th>
+                        <th class="t-right">Días hábiles</th>
+                        <th>Terminaría</th>
+                        <th class="t-right" title="Puntos que faltan ÷ estándar por persona (TIEMPOS DE LOS PROCESOS)">Días-persona (estándar)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for p in proyeccion %}
+                    <tr>
+                        <td><span class="etapa-{{ p.etapa.clave }}"><i class="tipo-dot"></i></span><b>{{ p.etapa.nombre }}</b><br><span class="small muted">estándar {{ p.etapa.estandar }} pts/persona/día</span></td>
+                        <td><div class="bar-cell etapa-{{ p.etapa.clave }}"><span class="bar bar-etapa"><i style="width:{{ p.pct }}%"></i></span><span class="num small">{{ p.hechos }}/{{ total.total }}</span></div></td>
+                        <td class="t-right num">{{ p.faltan }}</td>
+                        <td class="t-right num">{% if p.ritmo %}{{ p.ritmo }}/día{% else %}<span class="muted">—</span>{% endif %}</td>
+                        <td class="t-right num">{% if p.dias is not None %}{{ p.dias }}{% else %}<span class="muted">—</span>{% endif %}</td>
+                        <td class="nowrap">{% if not p.faltan %}<span class="badge badge-aprobado">Completa</span>{% elif p.fin %}{{ p.fin|date:"d-m-Y" }}{% else %}<span class="muted small">sin avance reciente</span>{% endif %}</td>
+                        <td class="t-right num">{{ p.dias_persona }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+    {% endif %}
+</div>
+{% endblock %}
+{% block page_scripts %}
+<script src="{% static 'marvelec_app/js/supervision.js' %}"></script>
+{% endblock %}

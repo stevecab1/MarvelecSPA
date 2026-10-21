@@ -2,11 +2,53 @@
 {% load marvelec_tags %}
 {% block title %}Historial - MARVELEC{% endblock %}
 {% block content %}
-<div class="row-between mb-2">
-    <h1>Mis reportes</h1>
-    <span class="muted small">{{ pagina.paginator.count }} en total</span>
+<h1 class="mb-2">Mi historial</h1>
+
+<div class="segmented mb-3" style="overflow-x:auto;max-width:100%">
+    <a href="?" class="{% if ver == 'reportes' %}is-active{% endif %}">Reportes</a>
+    <a href="?ver=llegadas" class="{% if ver == 'llegadas' %}is-active{% endif %}">Llegadas</a>
+    <a href="?ver=incidencias" class="{% if ver == 'incidencias' %}is-active{% endif %}">Incidencias</a>
 </div>
 
+{% if ver == 'llegadas' %}
+<div class="r-list">
+    {% for a in asistencias %}
+    <div class="r-card">
+        {% if a.foto %}<img class="r-thumb" src="{{ a.foto.url }}" alt="" loading="lazy" data-lightbox="{{ a.foto.url }}" data-caption="Llegada {{ a.fecha|date:'d-m-Y' }}">{% else %}<div class="r-thumb">{% icono "calendar" %}</div>{% endif %}
+        <div class="r-body">
+            <div class="r-top">
+                <span class="r-title">{{ a.fecha|date:"l d-m" }}</span>
+                <span class="badge badge-dot badge-{{ a.estado }}">{{ a.get_estado_display }}</span>
+            </div>
+            <div class="r-meta"><span>{% icono "clock" "icon-sm" %} {{ a.hora|time:"H:i" }}</span><span>{{ a.obra }}</span></div>
+            {% if a.motivo_rechazo %}<div class="r-note">{{ a.motivo_rechazo }}</div>{% endif %}
+        </div>
+    </div>
+    {% empty %}
+    <div class="card empty">{% icono "calendar" %}<p>Aún no has marcado llegadas.</p></div>
+    {% endfor %}
+</div>
+
+{% elif ver == 'incidencias' %}
+<div class="r-list">
+    {% for inc in incidencias %}
+    <div class="r-card">
+        {% if inc.foto %}<img class="r-thumb" src="{{ inc.foto.url }}" alt="" loading="lazy" data-lightbox="{{ inc.foto.url }}" data-caption="{{ inc.punto.codigo }} · {{ inc.tipo.nombre }}">{% else %}<div class="r-thumb">{% icono "alert" %}</div>{% endif %}
+        <div class="r-body">
+            <div class="r-top">
+                <span class="r-title">{{ inc.punto.codigo }} · Rack {{ inc.punto.rack.nombre }}</span>
+                <span class="badge badge-dot {% if inc.abierta %}badge-observado{% else %}badge-aprobado{% endif %}">{{ inc.get_estado_display }}</span>
+            </div>
+            <div class="r-meta"><span>{{ inc.tipo.nombre }}</span><span>{{ inc.creada|date:"d-m H:i" }}</span></div>
+            {% if inc.comentario_liberacion %}<div class="small muted">Solución: {{ inc.comentario_liberacion }}</div>{% endif %}
+        </div>
+    </div>
+    {% empty %}
+    <div class="card empty">{% icono "check-circle" %}<p>No has reportado incidencias.</p></div>
+    {% endfor %}
+</div>
+
+{% else %}
 <div class="segmented mb-3" style="overflow-x:auto;max-width:100%">
     <a href="?" class="{% if not estado %}is-active{% endif %}">Todos</a>
     <a href="?estado=pendiente" class="{% if estado == 'pendiente' %}is-active{% endif %}">Pendientes</a>
@@ -35,5 +77,6 @@
     <span class="muted small">Página {{ pagina.number }} de {{ pagina.paginator.num_pages }}</span>
     {% if pagina.has_next %}<a class="btn btn-secondary" href="{% qs page=pagina.next_page_number %}">Siguientes {% icono "chevron-right" %}</a>{% else %}<span></span>{% endif %}
 </div>
+{% endif %}
 {% endif %}
 {% endblock %}

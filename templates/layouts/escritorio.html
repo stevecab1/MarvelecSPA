@@ -10,9 +10,18 @@
     </a>
     <nav class="nav" aria-label="Navegación principal">
         <a href="{% url 'marvelec_app:panel_supervision' %}" class="{% if vista == 'panel_supervision' %}is-active{% endif %}">{% icono "chart" %} Resumen</a>
+        <a href="{% url 'marvelec_app:avance_obra' %}" class="{% if vista == 'avance_obra' or vista == 'rack_detalle' or vista == 'punto_detalle' %}is-active{% endif %}">{% icono "table" %} Avance de obra</a>
         <a href="{% url 'marvelec_app:cola_revision' %}" class="{% if vista == 'cola_revision' %}is-active{% endif %}">
             {% icono "inbox" %} Por revisar
             {% if pendientes_revision %}<span class="nav-count" data-pendientes-count>{{ pendientes_revision }}</span>{% endif %}
+        </a>
+        <a href="{% url 'marvelec_app:incidencias' %}" class="{% if vista == 'incidencias' %}is-active{% endif %}">
+            {% icono "alert" %} Incidencias
+            {% if incidencias_abiertas %}<span class="nav-count">{{ incidencias_abiertas }}</span>{% endif %}
+        </a>
+        <a href="{% url 'marvelec_app:asistencia_dia' %}" class="{% if vista == 'asistencia_dia' or vista == 'asistencia_mes' %}is-active{% endif %}">
+            {% icono "calendar" %} Asistencia
+            {% if asistencias_pendientes %}<span class="nav-count">{{ asistencias_pendientes }}</span>{% endif %}
         </a>
         <a href="{% url 'marvelec_app:lista_reportes' %}" class="{% if vista == 'lista_reportes' or vista == 'reporte_detalle' %}is-active{% endif %}">{% icono "file" %} Reportes</a>
         <a href="{% url 'marvelec_app:trabajadores' %}" class="{% if vista == 'trabajadores' %}is-active{% endif %}">{% icono "users" %} Trabajadores</a>
@@ -20,8 +29,9 @@
             {% icono "bell" %} Avisos
             <span class="nav-count" data-notif-count {% if not no_leidas %}hidden{% endif %}>{{ no_leidas }}</span>
         </a>
-        {% if user.is_staff %}
         <div class="nav-label">Configuración</div>
+        <a href="{% url 'marvelec_app:cargar_puntos' %}" class="{% if vista == 'cargar_puntos' %}is-active{% endif %}">{% icono "upload" %} Cargar puntos</a>
+        {% if user.is_staff %}
         <a href="/admin/">{% icono "settings" %} Administración</a>
         {% endif %}
     </nav>

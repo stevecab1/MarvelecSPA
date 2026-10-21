@@ -3,17 +3,18 @@
     {% if reporte.foto %}
     <img class="r-thumb" src="{{ reporte.foto.url }}" alt="" loading="lazy">
     {% else %}
-    <div class="r-thumb">{% icono "image" %}</div>
+    <div class="r-thumb">{% icono "network" %}</div>
     {% endif %}
     <div class="r-body">
         <div class="r-top">
-            <span class="r-title">{{ reporte.subetapa.nombre }}</span>
+            <span class="r-title">Rack {{ reporte.rack.nombre }}</span>
             {% include "marvelec_app/partials/estado_badge.html" %}
         </div>
         <div class="r-meta">
             <span>{% icono "clock" "icon-sm" %} {{ reporte.fecha_hora|date:"D d M, H:i" }}</span>
             <span class="pts">{{ reporte.total_puntos }} pts</span>
         </div>
+        {% include "marvelec_app/partials/desglose.html" %}
         {% if reporte.estado == "observado" and reporte.comentario_revision %}
         <div class="r-note">{{ reporte.comentario_revision|truncatechars:120 }}</div>
         {% endif %}
