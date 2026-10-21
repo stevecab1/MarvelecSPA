@@ -1,18 +1,26 @@
 # MARVELEC SPA — Sistema de Reporte y Seguimiento de Avance
 
-Reemplaza el flujo informal de WhatsApp de **MARVELEC SPA** (contratista de obra gruesa
-eléctrica). Es una sola aplicación web instalable (PWA) con dos experiencias:
+Reemplaza el flujo informal de WhatsApp de **MARVELEC SPA** en obras de **cableado
+estructurado**. Cada punto de la obra (ej. `DT-015` del rack `1H`) se sigue de extremo a
+extremo por sus 7 etapas:
 
-- **App del trabajador (celular):** reporta los **puntos ejecutados** (red / fuerza /
-  iluminación) por **subetapa**, con una foto opcional del avance. (La marca de llegada a la
-  obra será un módulo aparte.) Funciona **sin señal**: el reporte queda
-  guardado en el teléfono y se envía solo al volver la conexión.
-- **Programa de supervisión (PC):** resumen con gráficos, cola de revisión para
-  **aprobar u observar** reportes, lista filtrable, ranking de **puntos por jornada** por
-  trabajador y exportación a Excel.
-- **Notificaciones:** centro de avisos (campanita) + **push** en celular y PC:
-  nuevo reporte → supervisor; aprobado/observado → trabajador; **resumen diario** con quién
-  no reportó.
+**tendido → bajada / peinado de rack → identificación (tonos) → ponchado en rack / en usuario → certificación**
+
+Es una sola aplicación web instalable (PWA) con dos experiencias:
+
+- **App del trabajador (celular):** marca su **llegada** con foto y GPS; reporta qué **etapa**
+  terminó en qué **puntos** (selector por paquete o escribiendo `DT 1-2-3, VD 9` como en
+  WhatsApp); reporta **incidencias** tipificadas (sin canalización, materiales obstruyendo…)
+  que dejan el punto bloqueado. Todo funciona **sin señal** y se envía al volver la conexión.
+- **Programa de supervisión (PC):** carga de la **planilla de paquetes** (Excel), **avance de
+  obra** por rack y etapa con **proyección de término**, detalle de rack y de punto, cola de
+  revisión (**aprobar u observar**), **incidencias** con liberación y tiempo detenido,
+  **asistencia** del día y del mes, ranking por **rendimiento vs. estándar** y exportaciones a Excel.
+- **Notificaciones:** campanita + **push** en celular y PC (nuevo reporte, incidencia,
+  punto liberado, llegada rechazada, revisión) y **resumen diario**.
+
+Las reglas del sistema vienen de los documentos del levantamiento (carpeta *Contexto Proyecto*):
+el orden de las etapas, los rendimientos estándar por etapa y los tipos de incidencia.
 
 ## 1. Instalación local
 
@@ -30,13 +38,18 @@ Abre http://127.0.0.1:8000/ (las notificaciones push y la instalación como app 
 
 ## 2. Primeros pasos
 
-1. Entra a **/admin/** (tema [Unfold](https://unfoldadmin.com)) y crea una **Obra** con sus **Subetapas**.
+1. Entra a **/admin/** (tema [Unfold](https://unfoldadmin.com)) y crea la **Obra** (con su
+   fecha de término planificada, para estimar atrasos).
 2. Crea usuarios y, en **"Perfil de Trabajador"**, define su **rol** (Trabajador /
    Supervisor / Gerencia) y su **obra asignada**.
-3. Con un trabajador, en el celular: *Reportar avance* → subetapa → foto (opcional) → puntos
-   con los botones − / + → Enviar.
-4. Con un supervisor, en el PC: *Por revisar* → **Aprobar** (tecla `A`) u **Observar** (tecla `O`).
-5. En cada dispositivo toca **"Activar notificaciones"**. En iPhone primero hay que
+3. En el programa de supervisión: **Cargar puntos** → sube la planilla de paquetes (la misma
+   que se arma tras medir: una hoja por rack, `PAQUETE 01`, los códigos y `36 METROS`) →
+   revisa la vista previa → **Cargar**. También acepta una tabla simple (hay plantilla).
+4. Con un trabajador, en el celular: **Marcar llegada** (foto) → **Reportar avance**: rack →
+   etapa → puntos → Enviar. Si algo impide avanzar: **Incidencia**.
+5. Con un supervisor, en el PC: confirma la **Asistencia**, revisa **Por revisar** (`A` aprobar,
+   `O` observar), libera **Incidencias** y mira **Avance de obra**.
+6. En cada dispositivo toca **"Activar notificaciones"**. En iPhone primero hay que
    instalar la app (Safari → Compartir → *Agregar a inicio*, iOS 16.4+).
 
 ## 3. Instalar como aplicación
@@ -81,27 +94,43 @@ También se puede enviar a mano: `python manage.py resumen_diario [--fecha 2026-
 
 ```
 marvelec_app/
-├── models.py            # Obra, Subetapa, PerfilTrabajador, ReporteAvance (+ revisión),
-│                        # RegistroPunto, SuscripcionPush, Notificacion, ResumenDiarioEnviado
-├── views.py             # App trabajador, API offline, supervisión, detalle, Excel, avisos, PWA
-├── consultas.py         # Permisos por rol, filtros, KPIs, gráficos y ranking (reutilizables)
-├── servicios.py         # Crear / corregir / revisar reportes (atómico, idempotente)
+├── models.py            # Obra, Zona, Rack, Paquete, TipoPunto, Punto, ReporteAvance, AvancePunto,
+│                        # TipoIncidencia, Incidencia, Asistencia, PerfilTrabajador, Notificacion...
+├── etapas.py            # Las 7 etapas: orden, requisitos previos y rendimiento estándar
+├── importador.py        # Lectura de la planilla de paquetes (Excel) y carga de puntos
+├── servicios.py         # Reglas: validar etapas, omitidos, incidencias, asistencia (atómico, idempotente)
+├── consultas.py         # Permisos por rol, filtros, estado de obra, proyección, ranking, selector
 ├── notificaciones.py    # Centro de avisos + envío push/correo en segundo plano
 ├── resumen.py           # Resumen diario
 ├── push.py              # Web Push (VAPID) y suscripciones
+├── views/               # comunes, trabajador, api (celular/offline), supervision, exportar (Excel)
 ├── management/commands/ # resumen_diario, generar_vapid
 ├── templates/marvelec_app/
-│   ├── trabajador/      # inicio, nuevo_reporte, historial, detalle, avisos
-│   ├── supervision/     # resumen, revisar, reportes, trabajadores, avisos
+│   ├── trabajador/      # inicio, asistencia, nuevo_reporte, incidencia, historial, detalle
+│   ├── supervision/     # resumen, avance_obra, rack, punto, incidencias, asistencia, revisar,
+│   │                    # reportes, trabajadores, cargar_puntos
+│   ├── partials/        # selector de puntos, filtros, tarjetas
 │   └── pwa/             # sw.js y manifest (servidos desde la raíz del sitio)
 └── static/marvelec_app/
-    ├── css/style.css    # Sistema de diseño (claro/oscuro, móvil y escritorio)
-    ├── js/              # app.js, trabajador.js, outbox.js (cola sin señal), supervision.js
+    ├── css/style.css    # Sistema de diseño (claro/oscuro, móvil y escritorio, colores por etapa)
+    ├── js/              # app.js, trabajador.js (selector, GPS), outbox.js (cola sin señal), supervision.js
     └── vendor/          # Chart.js
 templates/
 ├── base.html
 └── layouts/             # movil.html (barra inferior), escritorio.html (menú lateral)
 ```
+
+### Reglas de negocio principales
+
+- Una etapa se registra **una sola vez por punto** (si otro ya la registró, queda "omitida"
+  con el motivo y quién la hizo).
+- Una etapa exige sus **requisitos previos** (ej. identificación = bajada + peinado). Vale si
+  vienen en el mismo reporte.
+- Un punto con **incidencia abierta** no avanza hasta que el supervisor la libera.
+- El reporte guarda lo válido y muestra lo **omitido** al trabajador y al supervisor.
+- **Asistencia**: una por día, con foto obligatoria. Si se rechaza, se puede volver a marcar.
+  Sólo los días **confirmados** cuentan como jornada.
+- **Rendimiento** = Σ (puntos de cada etapa ÷ estándar de la etapa) ÷ jornadas. 100% = estándar.
 
 ## 6. Tests
 
@@ -111,7 +140,9 @@ python manage.py test marvelec_app
 
 ## 7. Pendientes conocidos
 
-- Las **fotos** se guardan en el disco de Render, que en el plan gratuito se borra al
-  redesplegar → integrar almacenamiento en la nube (Cloudinary, S3) para `MEDIA_ROOT`.
-- La **base de datos** PostgreSQL gratuita de Render expira a los 90 días.
-- Límite de un reporte por trabajador por día: se evaluará más adelante.
+- Las **fotos** (llegadas, incidencias, avance) se guardan en el disco de Render, que en el plan
+  gratuito se borra al redesplegar → integrar almacenamiento en la nube (Cloudinary, S3)
+  **antes del piloto real**, porque la foto de llegada respalda la asistencia.
+- **Fase 2:** cuadrillas y asignación de paquetes, PDF de certificación Fluke por punto, falla de
+  certificación que devuelve el punto atrás, chat de consultas.
+- **Fase 3:** merma de cable (metros cortados vs. medidos por punto).
