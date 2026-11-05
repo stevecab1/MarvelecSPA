@@ -74,7 +74,17 @@ Variables de entorno:
 | `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` | Claves de notificaciones push (ver abajo) |
 | `VAPID_CLAIM_EMAIL` | Correo de contacto para los servicios push (opcional) |
 | `CRON_TOKEN` | Texto secreto largo para el resumen diario |
+| `CLOUDINARY_URL` | Almacenamiento de las fotos (ver abajo). Sin ella, se guardan en el disco |
 | `EMAIL_*`, `DEFAULT_FROM_EMAIL` | SMTP para correos de respaldo (opcional) |
+
+**Fotos (obligatorio en producción).** Las fotos de llegada, avance e incidencias se guardan en
+[Cloudinary](https://cloudinary.com) (plan gratuito). En *Dashboard → API Keys* se copia el
+**API environment variable** con el formato `cloudinary://<api_key>:<api_secret>@<cloud_name>`
+y se pega en Render como `CLOUDINARY_URL`.
+
+Si la variable no está, Django guarda las fotos en el disco local: sirve para desarrollo, pero en
+Render ese disco **se borra en cada despliegue** y se perderían las fotos que respaldan la asistencia.
+En los tests siempre se usa el disco, nunca Cloudinary.
 
 **Claves VAPID (obligatorio para push en producción).** Genéralas una sola vez en tu PC:
 
@@ -140,9 +150,6 @@ python manage.py test marvelec_app
 
 ## 7. Pendientes conocidos
 
-- Las **fotos** (llegadas, incidencias, avance) se guardan en el disco de Render, que en el plan
-  gratuito se borra al redesplegar → integrar almacenamiento en la nube (Cloudinary, S3)
-  **antes del piloto real**, porque la foto de llegada respalda la asistencia.
 - **Fase 2:** cuadrillas y asignación de paquetes, PDF de certificación Fluke por punto, falla de
   certificación que devuelve el punto atrás, chat de consultas.
 - **Fase 3:** merma de cable (metros cortados vs. medidos por punto).

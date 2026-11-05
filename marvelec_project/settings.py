@@ -51,6 +51,13 @@ INSTALLED_APPS = [
     'marvelec_app',
 ]
 
+# Las fotos (llegada, avance, incidencias) van a Cloudinary cuando existe CLOUDINARY_URL.
+# El disco de Render se borra en cada despliegue y la foto de llegada respalda la asistencia.
+# Sin esa variable (local y tests) se usa el disco, igual que con DATABASE_URL.
+FOTOS_EN_CLOUDINARY = bool(os.environ.get('CLOUDINARY_URL')) and not TESTING
+if FOTOS_EN_CLOUDINARY:
+    INSTALLED_APPS += ['cloudinary', 'cloudinary_storage']
+
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',  # Servir estáticos en producción
@@ -111,7 +118,12 @@ USE_TZ = True
 STATIC_URL = 'static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 STORAGES = {
-    'default': {'BACKEND': 'django.core.files.storage.FileSystemStorage'},
+    'default': {
+        'BACKEND': (
+            'cloudinary_storage.storage.MediaCloudinaryStorage' if FOTOS_EN_CLOUDINARY
+            else 'django.core.files.storage.FileSystemStorage'
+        ),
+    },
     # En producción: archivos comprimidos y con hash en el nombre (el celular nunca usa CSS/JS viejo).
     'staticfiles': {
         'BACKEND': (
