@@ -53,6 +53,13 @@ urlpatterns = [
     path('reportes/exportar-puntos/', views.exportar_estado_puntos, name='exportar_estado_puntos'),
     path('reportes/exportar-asistencia/', views.exportar_asistencia, name='exportar_asistencia'),
 
+    # --- Chat de consultas ---
+    path('chat/', views.bandeja, name='chat'),
+    path('chat/con/<int:usuario_pk>/', views.abrir, name='chat_abrir'),
+    path('chat/<int:pk>/', views.conversacion, name='chat_conversacion'),
+    path('chat/<int:pk>/enviar/', views.enviar, name='chat_enviar'),
+    path('chat/<int:pk>/mensajes/', views.mensajes_nuevos, name='chat_mensajes'),
+
     # --- Centro de notificaciones ---
     path('notificaciones/', views.notificaciones, name='notificaciones'),
     path('notificaciones/estado/', views.notificaciones_estado, name='notificaciones_estado'),

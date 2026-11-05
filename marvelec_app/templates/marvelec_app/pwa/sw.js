@@ -13,7 +13,7 @@ const ESTATICOS = [
 ];
 
 // Rutas que nunca se sirven desde caché.
-const SOLO_RED = ['/admin/', '/api/', '/notificaciones/', '/reportes/exportar', '/tareas/', '/salir/', '/ingresar/'];
+const SOLO_RED = ['/admin/', '/api/', '/chat/', '/notificaciones/', '/reportes/exportar', '/tareas/', '/salir/', '/ingresar/'];
 
 importScripts('{% static "marvelec_app/js/outbox.js" %}');
 

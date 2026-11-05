@@ -260,6 +260,8 @@ UNFOLD = {
                     {'title': 'Tipos de punto', 'icon': 'category', 'link': _admin_url('marvelec_app_tipopunto')},
                     {'title': 'Tipos de incidencia', 'icon': 'rule',
                      'link': _admin_url('marvelec_app_tipoincidencia')},
+                    {'title': 'Conversaciones', 'icon': 'forum',
+                     'link': _admin_url('marvelec_app_conversacion')},
                     {'title': 'Notificaciones', 'icon': 'notifications',
                      'link': _admin_url('marvelec_app_notificacion')},
                     {'title': 'Suscripciones push', 'icon': 'phonelink_ring',

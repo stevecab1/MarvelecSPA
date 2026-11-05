@@ -14,10 +14,10 @@ from django.db import IntegrityError, transaction
 from django.utils import timezone
 
 from . import etapas
-from .models import Asistencia, AvancePunto, Incidencia, Punto, ReporteAvance
+from .models import Asistencia, AvancePunto, Conversacion, Incidencia, Mensaje, Punto, ReporteAvance
 from .notificaciones import (
-    notificar_asistencia_rechazada, notificar_incidencias, notificar_liberacion, notificar_nuevo_reporte,
-    notificar_revision,
+    notificar_asistencia_rechazada, notificar_incidencias, notificar_liberacion, notificar_mensaje,
+    notificar_nuevo_reporte, notificar_revision,
 )
 
 # Un registro guardado sin señal puede llegar hasta 7 días después.
@@ -373,6 +373,25 @@ def marcar_asistencia(usuario, obra, foto, latitud=None, longitud=None, precisio
             return existente, False
         raise ValidationError('Ya marcaste tu llegada hoy.')
     return asistencia, True
+
+
+def enviar_mensaje(autor, conversacion, texto='', foto=None):
+    """Guarda el mensaje, adelanta la conversación en la bandeja y avisa al destinatario."""
+    mensaje = Mensaje(conversacion=conversacion, autor=autor, texto=(texto or '').strip(), foto=foto)
+    mensaje.full_clean(exclude=['foto'] if not foto else None)
+    with transaction.atomic():
+        mensaje.save()
+        Conversacion.objects.filter(pk=conversacion.pk).update(ultimo_mensaje_en=mensaje.enviado)
+    conversacion.ultimo_mensaje_en = mensaje.enviado
+    notificar_mensaje(mensaje)
+    return mensaje
+
+
+def marcar_leidos(conversacion, usuario):
+    """Marca como leídos los mensajes que el usuario recibió en esta conversación."""
+    return Mensaje.objects.filter(
+        conversacion=conversacion, leido=False
+    ).exclude(autor=usuario).update(leido=True)
 
 
 def revisar_asistencia(asistencia, revisor, accion, motivo=''):

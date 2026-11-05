@@ -1,4 +1,5 @@
 from .api import api_asistencia, api_crear_reporte, api_incidencia
+from .chat import abrir, bandeja, conversacion, enviar, mensajes_nuevos
 from .comunes import (
     dashboard_redirect, login_usuario, logout_usuario, manifest, notificacion_leer, notificaciones,
     notificaciones_estado, notificaciones_leer_todas, reporte_detalle, revisar, service_worker, tarea_resumen_diario,

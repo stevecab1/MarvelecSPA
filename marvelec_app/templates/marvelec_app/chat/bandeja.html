@@ -1,0 +1,62 @@
+{% extends layout %}
+{% load marvelec_tags %}
+{% block title %}Chat - MARVELEC{% endblock %}
+{% block page_title %}Chat de consultas{% endblock %}
+{% block page_subtitle %}Conversaciones privadas con tu equipo{% endblock %}
+{% block content %}
+<div class="stack">
+    {% if not perfil.es_supervisor_o_gerencia %}
+    <div class="row-between mb-2">
+        <h1>Chat</h1>
+        <span class="muted small">Consultas privadas</span>
+    </div>
+    {% endif %}
+
+    {% if conversaciones %}
+    <div class="chat-lista">
+        {% for c in conversaciones %}
+        <a href="{% url 'marvelec_app:chat_conversacion' c.conversacion.pk %}" class="chat-item {% if c.sin_leer %}is-nuevo{% endif %}">
+            <span class="avatar">{{ c.otro|iniciales }}</span>
+            <span class="chat-item-body">
+                <span class="chat-item-top">
+                    <b>{{ c.otro|nombre_usuario }}</b>
+                    <time>{{ c.ultimo.enviado|date:"d-m H:i" }}</time>
+                </span>
+                <span class="chat-item-ultimo">
+                    {% if c.propio %}<span class="muted">Tú:</span> {% endif %}
+                    {% if c.ultimo.texto %}{{ c.ultimo.texto|truncatechars:70 }}{% else %}{% icono "image" "icon-sm" %} Foto{% endif %}
+                </span>
+            </span>
+            {% if c.sin_leer %}<span class="chat-badge">{{ c.sin_leer }}</span>{% endif %}
+        </a>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    {% if contactos %}
+    <section class="card">
+        <div class="card-header">
+            <h3>{% icono "users" %} {% if conversaciones %}Escribir a alguien más{% else %}¿A quién quieres escribirle?{% endif %}</h3>
+        </div>
+        <div class="chat-contactos">
+            {% for p in contactos %}
+            <a href="{% url 'marvelec_app:chat_abrir' p.usuario_id %}" class="chat-contacto">
+                <span class="avatar">{{ p.usuario|iniciales }}</span>
+                <span>
+                    <b>{{ p.usuario|nombre_usuario }}</b>
+                    <small>{{ p.get_rol_display }}{% if p.obra_asignada %} · {{ p.obra_asignada }}{% endif %}</small>
+                </span>
+                {% icono "chevron-right" "icon-sm" %}
+            </a>
+            {% endfor %}
+        </div>
+    </section>
+    {% elif not conversaciones %}
+    <div class="card empty">
+        {% icono "message" %}
+        <h3>Todavía no hay con quién conversar</h3>
+        <p>Cuando tengas un supervisor asignado a tu obra, aparecerá aquí.</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

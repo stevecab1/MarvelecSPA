@@ -16,8 +16,11 @@ Es una sola aplicación web instalable (PWA) con dos experiencias:
   obra** por rack y etapa con **proyección de término**, detalle de rack y de punto, cola de
   revisión (**aprobar u observar**), **incidencias** con liberación y tiempo detenido,
   **asistencia** del día y del mes, ranking por **rendimiento vs. estándar** y exportaciones a Excel.
+- **Chat de consultas:** conversaciones **privadas** entre un trabajador y su jefatura (supervisores
+  y gerencia de su obra), con texto y foto. No hay grupos ni mensajes entre trabajadores: el canal
+  compartido es justamente lo que el sistema vino a reemplazar.
 - **Notificaciones:** campanita + **push** en celular y PC (nuevo reporte, incidencia,
-  punto liberado, llegada rechazada, revisión) y **resumen diario**.
+  punto liberado, llegada rechazada, revisión, mensaje nuevo) y **resumen diario**.
 
 Las reglas del sistema vienen de los documentos del levantamiento (carpeta *Contexto Proyecto*):
 el orden de las etapas, los rendimientos estándar por etapa y los tipos de incidencia.
@@ -123,7 +126,8 @@ marvelec_app/
 │   └── pwa/             # sw.js y manifest (servidos desde la raíz del sitio)
 └── static/marvelec_app/
     ├── css/style.css    # Sistema de diseño (claro/oscuro, móvil y escritorio, colores por etapa)
-    ├── js/              # app.js, trabajador.js (selector, GPS), outbox.js (cola sin señal), supervision.js
+    ├── js/              # app.js, trabajador.js (selector, GPS), outbox.js (cola sin señal),
+    │                    # supervision.js, chat.js (sondeo del hilo abierto)
     └── vendor/          # Chart.js
 templates/
 ├── base.html
@@ -141,6 +145,10 @@ templates/
 - **Asistencia**: una por día, con foto obligatoria. Si se rechaza, se puede volver a marcar.
   Sólo los días **confirmados** cuentan como jornada.
 - **Rendimiento** = Σ (puntos de cada etapa ÷ estándar de la etapa) ÷ jornadas. 100% = estándar.
+- **Chat:** un trabajador sólo conversa con la jefatura de su obra, nunca con otro trabajador. El hilo
+  abierto se actualiza por sondeo cada 5 s (Render en plan gratuito no mantiene WebSockets). Sin señal
+  el mensaje **no** se guarda para después: se avisa, para que una consulta urgente no llegue tarde.
+  Los mensajes no llenan la campanita; el chat tiene su propio contador.
 
 ## 6. Tests
 
@@ -151,5 +159,7 @@ python manage.py test marvelec_app
 ## 7. Pendientes conocidos
 
 - **Fase 2:** cuadrillas y asignación de paquetes, PDF de certificación Fluke por punto, falla de
-  certificación que devuelve el punto atrás, chat de consultas.
+  certificación que devuelve el punto atrás.
+- La **administración puede leer las conversaciones** desde `/admin/` (sólo lectura, para soporte).
+  Conviene avisarlo al equipo.
 - **Fase 3:** merma de cable (metros cortados vs. medidos por punto).

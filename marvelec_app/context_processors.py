@@ -8,11 +8,14 @@ def app(request):
     if not user or not user.is_authenticated:
         return {}
 
+    from .consultas import mensajes_sin_leer
+
     perfil = PerfilTrabajador.objects.filter(usuario=user).select_related('obra_asignada').first()
     datos = {
         'perfil_app': perfil,
         'es_revisor': bool(perfil and perfil.es_supervisor_o_gerencia),
         'no_leidas': Notificacion.objects.filter(usuario=user, leida=False).count(),
+        'mensajes_no_leidos': mensajes_sin_leer(user),
     }
     if datos['es_revisor']:
         from .consultas import hoy_local, incidencias_visibles, obra_fija, reportes_visibles

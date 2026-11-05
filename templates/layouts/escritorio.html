@@ -25,6 +25,10 @@
         </a>
         <a href="{% url 'marvelec_app:lista_reportes' %}" class="{% if vista == 'lista_reportes' or vista == 'reporte_detalle' %}is-active{% endif %}">{% icono "file" %} Reportes</a>
         <a href="{% url 'marvelec_app:trabajadores' %}" class="{% if vista == 'trabajadores' %}is-active{% endif %}">{% icono "users" %} Trabajadores</a>
+        <a href="{% url 'marvelec_app:chat' %}" class="{% if vista == 'chat' or vista == 'chat_conversacion' %}is-active{% endif %}">
+            {% icono "message" %} Chat
+            {% if mensajes_no_leidos %}<span class="nav-count">{{ mensajes_no_leidos }}</span>{% endif %}
+        </a>
         <a href="{% url 'marvelec_app:notificaciones' %}" class="{% if vista == 'notificaciones' %}is-active{% endif %}">
             {% icono "bell" %} Avisos
             <span class="nav-count" data-notif-count {% if not no_leidas %}hidden{% endif %}>{{ no_leidas }}</span>

@@ -36,6 +36,33 @@
         return div.innerHTML;
     };
 
+    // Reduce la foto antes de subirla: en obra la señal es mala y las fotos del celular pesan mucho.
+    MV.comprimirImagen = async function (archivo, max) {
+        max = max || 1600;
+        try {
+            let fuente;
+            if ('createImageBitmap' in window) {
+                fuente = await createImageBitmap(archivo);
+            } else {
+                fuente = await new Promise((resolve, reject) => {
+                    const img = new Image();
+                    img.onload = () => resolve(img);
+                    img.onerror = reject;
+                    img.src = URL.createObjectURL(archivo);
+                });
+            }
+            const escala = Math.min(1, max / Math.max(fuente.width, fuente.height));
+            const canvas = document.createElement('canvas');
+            canvas.width = Math.round(fuente.width * escala);
+            canvas.height = Math.round(fuente.height * escala);
+            canvas.getContext('2d').drawImage(fuente, 0, 0, canvas.width, canvas.height);
+            const blob = await new Promise((r) => canvas.toBlob(r, 'image/jpeg', 0.8));
+            return blob && blob.size < archivo.size ? blob : archivo;
+        } catch (e) {
+            return archivo; // formato no soportado por el navegador: se sube el original
+        }
+    };
+
     // ---------- Toasts ----------
     const ICONOS_TOAST = { success: 'check-circle', error: 'alert', warning: 'alert', info: 'info' };
     const stack = document.getElementById('toasts');

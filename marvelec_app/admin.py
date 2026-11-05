@@ -15,8 +15,9 @@ from unfold.forms import AdminPasswordChangeForm, UserChangeForm, UserCreationFo
 
 from . import etapas
 from .models import (
-    Asistencia, AvancePunto, Incidencia, Notificacion, Obra, Paquete, PerfilTrabajador, Punto, Rack,
-    ReporteAvance, ResumenDiarioEnviado, SuscripcionPush, TipoIncidencia, TipoPunto, Zona,
+    Asistencia, AvancePunto, Conversacion, Incidencia, Mensaje, Notificacion, Obra, Paquete,
+    PerfilTrabajador, Punto, Rack, ReporteAvance, ResumenDiarioEnviado, SuscripcionPush, TipoIncidencia,
+    TipoPunto, Zona,
 )
 from .servicios import liberar_incidencia, revisar_asistencia, revisar_reporte
 
@@ -525,6 +526,39 @@ class NotificacionAdmin(ModelAdmin):
     list_filter_submit = True
     search_fields = ('titulo', 'cuerpo', 'usuario__username')
     raw_id_fields = ('reporte',)
+
+
+class MensajeInline(TabularInline):
+    model = Mensaje
+    extra = 0
+    fields = ('autor', 'texto', 'foto', 'enviado', 'leido')
+    readonly_fields = fields
+    can_delete = False
+
+    def has_add_permission(self, request, obj=None):
+        return False
+
+
+@admin.register(Conversacion)
+class ConversacionAdmin(ModelAdmin):
+    """Sólo lectura, para soporte. El equipo debe saber que la administración puede leer el chat."""
+    list_display = ('__str__', 'n_mensajes', 'ultimo_mensaje_en', 'creada')
+    list_select_related = ('usuario_menor', 'usuario_mayor')
+    search_fields = ('usuario_menor__username', 'usuario_mayor__username',
+                     'usuario_menor__first_name', 'usuario_mayor__first_name')
+    date_hierarchy = 'ultimo_mensaje_en'
+    inlines = [MensajeInline]
+    readonly_fields = ('usuario_menor', 'usuario_mayor', 'creada', 'ultimo_mensaje_en')
+
+    def has_add_permission(self, request):
+        return False
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).annotate(_n=Count('mensajes'))
+
+    @display(description='Mensajes', ordering='_n')
+    def n_mensajes(self, obj):
+        return obj._n
 
 
 @admin.register(SuscripcionPush)

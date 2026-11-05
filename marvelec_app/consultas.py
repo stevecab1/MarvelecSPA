@@ -13,7 +13,8 @@ from django.utils import timezone
 
 from . import etapas
 from .models import (
-    Asistencia, AvancePunto, Incidencia, Obra, Paquete, PerfilTrabajador, Punto, Rack, ReporteAvance,
+    Asistencia, AvancePunto, Conversacion, Incidencia, Mensaje, Obra, Paquete, PerfilTrabajador, Punto,
+    Rack, ReporteAvance,
 )
 
 DIAS_RITMO = 14  # ventana para medir el ritmo real de cada etapa
@@ -67,6 +68,67 @@ def trabajadores_de(perfil):
     if fija:
         perfiles = perfiles.filter(obra_asignada_id=fija)
     return perfiles.order_by('usuario__first_name', 'usuario__username')
+
+
+# =========================================================
+# Chat de consultas
+# =========================================================
+
+def contactos(perfil):
+    """
+    Con quién puede conversar este usuario. Un trabajador habla con su jefatura, nunca con otros
+    trabajadores: comparar avances entre ellos es el problema que dejó el grupo de WhatsApp.
+    """
+    activos = PerfilTrabajador.objects.filter(usuario__is_active=True).exclude(
+        usuario_id=perfil.usuario_id
+    ).select_related('usuario', 'obra_asignada')
+
+    if perfil.rol == PerfilTrabajador.ROL_TRABAJADOR:
+        # Mismos destinatarios que reciben sus reportes (ver notificaciones.revisores_de_obra).
+        return activos.filter(
+            Q(rol=PerfilTrabajador.ROL_GERENCIA)
+            | Q(rol=PerfilTrabajador.ROL_SUPERVISOR, obra_asignada_id=perfil.obra_asignada_id)
+            | Q(rol=PerfilTrabajador.ROL_SUPERVISOR, obra_asignada__isnull=True)
+        ).order_by('rol', 'usuario__first_name', 'usuario__username')
+
+    # Supervisor o gerencia: el resto de la jefatura y los trabajadores a su cargo.
+    fija = obra_fija(perfil)
+    a_cargo = Q(rol=PerfilTrabajador.ROL_TRABAJADOR)
+    if fija:
+        a_cargo &= Q(obra_asignada_id=fija)
+    return activos.filter(
+        Q(rol__in=[PerfilTrabajador.ROL_SUPERVISOR, PerfilTrabajador.ROL_GERENCIA]) | a_cargo
+    ).order_by('rol', 'usuario__first_name', 'usuario__username')
+
+
+def puede_conversar(perfil, usuario):
+    return contactos(perfil).filter(usuario_id=usuario.pk).exists()
+
+
+def conversaciones_de(usuario):
+    return Conversacion.objects.filter(
+        Q(usuario_menor=usuario) | Q(usuario_mayor=usuario)
+    ).select_related('usuario_menor', 'usuario_mayor')
+
+
+def mensajes_sin_leer(usuario, conversacion=None):
+    """Mensajes recibidos y aún no leídos (en una conversación o en todas)."""
+    mensajes = Mensaje.objects.filter(leido=False).exclude(autor=usuario)
+    if conversacion is not None:
+        return mensajes.filter(conversacion=conversacion).count()
+    return mensajes.filter(
+        Q(conversacion__usuario_menor=usuario) | Q(conversacion__usuario_mayor=usuario)
+    ).count()
+
+
+def sin_leer_por_conversacion(usuario):
+    """{conversacion_id: n} para pintar los contadores de la bandeja en una sola consulta."""
+    filas = (
+        Mensaje.objects.filter(leido=False).exclude(autor=usuario)
+        .filter(Q(conversacion__usuario_menor=usuario) | Q(conversacion__usuario_mayor=usuario))
+        .values('conversacion_id').annotate(n=Count('id'))
+    )
+    return {f['conversacion_id']: f['n'] for f in filas}
 
 
 # =========================================================

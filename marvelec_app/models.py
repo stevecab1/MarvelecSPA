@@ -466,6 +466,71 @@ class Asistencia(models.Model):
 
 
 # =========================================================
+# CHAT DE CONSULTAS
+# =========================================================
+
+class Conversacion(models.Model):
+    """
+    Conversación privada entre dos personas (trabajador y jefatura). No hay grupos: el canal
+    compartido de WhatsApp es justamente lo que el sistema vino a reemplazar.
+    """
+    # Los dos usuarios se guardan ordenados por pk, así A→B y B→A son la misma fila.
+    usuario_menor = models.ForeignKey(User, on_delete=models.CASCADE, related_name='conversaciones_a')
+    usuario_mayor = models.ForeignKey(User, on_delete=models.CASCADE, related_name='conversaciones_b')
+    creada = models.DateTimeField(auto_now_add=True)
+    ultimo_mensaje_en = models.DateTimeField(default=timezone.now, db_index=True)
+
+    class Meta:
+        verbose_name = "Conversación"
+        verbose_name_plural = "Conversaciones"
+        ordering = ['-ultimo_mensaje_en']
+        constraints = [
+            models.UniqueConstraint(fields=['usuario_menor', 'usuario_mayor'], name='una_conversacion_por_par'),
+        ]
+
+    def __str__(self):
+        return f"{_nombre(self.usuario_menor)} ↔ {_nombre(self.usuario_mayor)}"
+
+    @classmethod
+    def entre(cls, uno, otro):
+        """Devuelve (conversación, creada) entre dos usuarios, sin duplicar el par."""
+        menor, mayor = sorted((uno, otro), key=lambda u: u.pk)
+        return cls.objects.get_or_create(usuario_menor=menor, usuario_mayor=mayor)
+
+    def otro(self, usuario):
+        """La otra persona de la conversación."""
+        return self.usuario_mayor if usuario.pk == self.usuario_menor_id else self.usuario_menor
+
+    def puede_ver(self, usuario):
+        return usuario.pk in (self.usuario_menor_id, self.usuario_mayor_id)
+
+    def get_absolute_url(self):
+        return reverse('marvelec_app:chat_conversacion', args=[self.pk])
+
+
+class Mensaje(models.Model):
+    """Un mensaje dentro de una conversación. Puede llevar texto, una foto, o ambos."""
+    conversacion = models.ForeignKey(Conversacion, on_delete=models.CASCADE, related_name='mensajes')
+    autor = models.ForeignKey(User, on_delete=models.CASCADE, related_name='mensajes_enviados')
+    texto = models.TextField(blank=True)
+    foto = models.ImageField(upload_to='chat/%Y/%m/', blank=True, null=True)
+    enviado = models.DateTimeField(auto_now_add=True, db_index=True)
+    leido = models.BooleanField(default=False)
+
+    class Meta:
+        verbose_name = "Mensaje"
+        verbose_name_plural = "Mensajes"
+        ordering = ['enviado']
+
+    def __str__(self):
+        return f"{_nombre(self.autor)}: {self.texto[:40] or '(foto)'}"
+
+    def clean(self):
+        if not self.texto.strip() and not self.foto:
+            raise ValidationError('Escribe un mensaje o adjunta una foto.')
+
+
+# =========================================================
 # NOTIFICACIONES
 # =========================================================
 

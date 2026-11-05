@@ -25,7 +25,7 @@ from ..models import Notificacion, PerfilTrabajador, ReporteAvance
 from ..servicios import revisar_reporte
 
 # Cambiar al modificar sw.js para forzar su actualización en los dispositivos.
-SW_VERSION = '3.0.0'
+SW_VERSION = '3.1.0'
 
 
 # =========================================================

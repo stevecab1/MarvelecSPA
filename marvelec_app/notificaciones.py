@@ -35,12 +35,18 @@ def _en_segundo_plano(funcion, *args):
     transaction.on_commit(lambda: threading.Thread(target=ejecutar, daemon=True).start())
 
 
+def total_sin_leer(usuario):
+    """Número del ícono de la app: avisos de la campanita + mensajes del chat."""
+    from .consultas import mensajes_sin_leer
+    return Notificacion.objects.filter(usuario=usuario, leida=False).count() + mensajes_sin_leer(usuario)
+
+
 def _enviar_push(usuario_ids, titulo, cuerpo, url, tipo):
     from .push import enviar_notificacion_push
     for usuario in User.objects.filter(pk__in=usuario_ids):
-        no_leidas = Notificacion.objects.filter(usuario=usuario, leida=False).count()
         try:
-            enviar_notificacion_push(usuario, titulo, cuerpo, url=url, tag=tipo, no_leidas=no_leidas)
+            enviar_notificacion_push(usuario, titulo, cuerpo, url=url, tag=tipo,
+                                     no_leidas=total_sin_leer(usuario))
         except Exception:
             logger.exception('Error enviando push a %s', usuario.username)
 
@@ -143,6 +149,19 @@ def notificar_liberacion(incidencia):
         f'Liberado: {incidencia.tipo.nombre}' + (f' por {quien}' if quien else ''),
         cuerpo, reverse('marvelec_app:panel_trabajador'),
     )
+
+
+def notificar_mensaje(mensaje):
+    """
+    Avisa por push al destinatario de un mensaje de chat.
+    A propósito NO crea una fila en Notificacion: un aviso por cada línea de conversación
+    inundaría la campanita. El chat lleva su propio contador de no leídos.
+    """
+    destinatario = mensaje.conversacion.otro(mensaje.autor)
+    autor = mensaje.autor.get_full_name() or mensaje.autor.username
+    cuerpo = mensaje.texto or '📷 Te envió una foto'
+    url = reverse('marvelec_app:chat_conversacion', args=[mensaje.conversacion_id])
+    _en_segundo_plano(_enviar_push, [destinatario.pk], autor, cuerpo, url, 'mensaje')
 
 
 def notificar_asistencia_rechazada(asistencia):

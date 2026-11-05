@@ -1,0 +1,59 @@
+{% extends layout %}
+{% load static marvelec_tags %}
+{% block title %}{{ otro|nombre_usuario }} - MARVELEC{% endblock %}
+{% block page_title %}{{ otro|nombre_usuario }}{% endblock %}
+{% block page_subtitle %}{{ otro.perfil.get_rol_display }}{% endblock %}
+{% block content %}
+<div class="chat" data-chat
+     data-url-mensajes="{% url 'marvelec_app:chat_mensajes' conversacion.pk %}"
+     data-url-enviar="{% url 'marvelec_app:chat_enviar' conversacion.pk %}"
+     data-ultimo="{{ ultimo_id }}">
+
+    <div class="chat-cabecera">
+        <a href="{% url 'marvelec_app:chat' %}" class="btn btn-ghost btn-icon" aria-label="Volver">{% icono "chevron-left" %}</a>
+        <span class="avatar">{{ otro|iniciales }}</span>
+        <span>
+            <b>{{ otro|nombre_usuario }}</b>
+            <small class="muted">{{ otro.perfil.get_rol_display }}</small>
+        </span>
+    </div>
+
+    <div class="chat-mensajes" data-chat-mensajes>
+        {% for m in mensajes %}
+        <div class="burbuja {% if m.autor_id == user.pk %}es-propio{% endif %}">
+            {% if m.foto %}
+            <img src="{{ m.foto.url }}" alt="Foto adjunta" loading="lazy"
+                 data-lightbox="{{ m.foto.url }}" data-caption="{{ m.autor|nombre_usuario }} — {{ m.enviado|date:'d-m-Y H:i' }}">
+            {% endif %}
+            {% if m.texto %}<p>{{ m.texto|linebreaksbr }}</p>{% endif %}
+            <time>{{ m.enviado|date:"H:i" }}</time>
+        </div>
+        {% empty %}
+        <div class="empty small" data-chat-vacio>
+            {% icono "message" %}
+            <p>Aún no hay mensajes.<br>Escribe tu consulta abajo.</p>
+        </div>
+        {% endfor %}
+    </div>
+
+    <form class="chat-barra" method="post" action="{% url 'marvelec_app:chat_enviar' conversacion.pk %}"
+          enctype="multipart/form-data" data-chat-form>
+        {% csrf_token %}
+        <label class="chat-foto" aria-label="Adjuntar foto">
+            <input type="file" name="foto" accept="image/*" capture="environment" data-chat-foto>
+            {% icono "camera" %}
+        </label>
+        <textarea name="texto" rows="1" placeholder="Escribe tu consulta…" data-chat-texto
+                  aria-label="Mensaje"></textarea>
+        <button type="submit" class="btn btn-icon" aria-label="Enviar">{% icono "send" %}</button>
+    </form>
+    <div class="chat-adjunto" data-chat-adjunto hidden>
+        {% icono "image" "icon-sm" %}
+        <span data-chat-adjunto-nombre></span>
+        <button type="button" class="btn btn-ghost btn-sm" data-chat-quitar>{% icono "x" "icon-sm" %}</button>
+    </div>
+</div>
+{% endblock %}
+{% block page_scripts %}
+<script src="{% static 'marvelec_app/js/chat.js' %}"></script>
+{% endblock %}

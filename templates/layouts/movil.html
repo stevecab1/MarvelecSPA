@@ -39,6 +39,10 @@
     <a href="{% url 'marvelec_app:nuevo_reporte' %}" class="tab tab-nuevo {% if vista == 'nuevo_reporte' %}is-active{% endif %}">
         <span class="tab-fab">{% icono "plus" %}</span><span>Reportar</span>
     </a>
+    <a href="{% url 'marvelec_app:chat' %}" class="tab {% if vista == 'chat' or vista == 'chat_conversacion' %}is-active{% endif %}">
+        {% icono "message" %}<span>Chat</span>
+        <span class="count" {% if not mensajes_no_leidos %}hidden{% endif %}>{{ mensajes_no_leidos }}</span>
+    </a>
     <a href="{% url 'marvelec_app:notificaciones' %}" class="tab {% if vista == 'notificaciones' %}is-active{% endif %}">
         {% icono "bell" %}<span>Avisos</span>
         <span class="count" data-notif-count {% if not no_leidas %}hidden{% endif %}>{{ no_leidas }}</span>

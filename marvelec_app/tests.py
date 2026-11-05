@@ -16,8 +16,8 @@ from django.utils import timezone
 
 from . import consultas, etapas, importador
 from .models import (
-    Asistencia, AvancePunto, Incidencia, Notificacion, Obra, Paquete, PerfilTrabajador, Punto, Rack, ReporteAvance,
-    ResumenDiarioEnviado, SuscripcionPush, TipoIncidencia, TipoPunto, Zona,
+    Asistencia, AvancePunto, Conversacion, Incidencia, Mensaje, Notificacion, Obra, Paquete, PerfilTrabajador,
+    Punto, Rack, ReporteAvance, ResumenDiarioEnviado, SuscripcionPush, TipoIncidencia, TipoPunto, Zona,
 )
 from .servicios import parsear_codigos, resolver_codigos
 
@@ -773,6 +773,108 @@ class PantallasTests(BaseEscenario):
 # Panel de administración (tema Unfold)
 # =========================================================
 
+class ChatTests(BaseEscenario):
+    """Chat de consultas: privado y sólo entre trabajador y jefatura."""
+
+    def _enviar(self, conversacion, **datos):
+        return self.client.post(reverse('marvelec_app:chat_enviar', args=[conversacion.pk]), datos,
+                                HTTP_X_REQUESTED_WITH='fetch')
+
+    def test_contactos_por_rol(self):
+        def nombres(usuario):
+            perfil = PerfilTrabajador.objects.get(usuario=usuario)
+            return set(consultas.contactos(perfil).values_list('usuario__username', flat=True))
+
+        # El trabajador ve a su jefatura, nunca a sus compañeros de obra.
+        self.assertEqual(nombres(self.trab_a), {'sup_a', 'gerente'})
+        self.assertEqual(nombres(self.trab_b), {'sup_b', 'gerente'})
+        # El supervisor con obra fija no ve trabajadores de otra obra.
+        self.assertEqual(nombres(self.sup_a), {'trab_a', 'trab_a2', 'sup_b', 'gerente'})
+        # Gerencia habla con todos.
+        self.assertEqual(nombres(self.gerente), {'trab_a', 'trab_a2', 'trab_b', 'sup_a', 'sup_b'})
+
+    def test_no_se_puede_abrir_conversacion_fuera_de_los_contactos(self):
+        self._login("trab_a")
+        for ajeno in (self.trab_a2, self.sup_b):
+            r = self.client.get(reverse('marvelec_app:chat_abrir', args=[ajeno.pk]))
+            self.assertEqual(r.status_code, 404, ajeno.username)
+        self.assertFalse(Conversacion.objects.exists())
+
+    def test_la_conversacion_no_se_duplica(self):
+        uno, creada = Conversacion.entre(self.trab_a, self.sup_a)
+        otra, creada_otra = Conversacion.entre(self.sup_a, self.trab_a)
+        self.assertEqual(uno.pk, otra.pk)
+        self.assertEqual((creada, creada_otra), (True, False))
+        self.assertEqual(Conversacion.objects.count(), 1)
+
+    def test_enviar_deja_sin_leer_y_abrir_marca_leido(self):
+        self._login("trab_a")
+        self.client.get(reverse('marvelec_app:chat_abrir', args=[self.sup_a.pk]))
+        hilo = Conversacion.objects.get()
+        r = self._enviar(hilo, texto='¿El DT-015 va al patch panel de arriba?')
+        self.assertEqual(r.status_code, 201, r.content)
+        self.assertEqual(consultas.mensajes_sin_leer(self.sup_a), 1)
+        self.assertEqual(consultas.mensajes_sin_leer(self.trab_a), 0)  # lo propio no cuenta
+
+        self._login("sup_a")
+        self.client.get(reverse('marvelec_app:chat_conversacion', args=[hilo.pk]))
+        self.assertEqual(consultas.mensajes_sin_leer(self.sup_a), 0)
+
+    def test_un_tercero_no_entra_a_una_conversacion_ajena(self):
+        hilo, _ = Conversacion.entre(self.trab_a, self.sup_a)
+        self._login("trab_a2")
+        for nombre in ('chat_conversacion', 'chat_mensajes'):
+            self.assertEqual(self.client.get(reverse(f'marvelec_app:{nombre}', args=[hilo.pk])).status_code, 404)
+        self.assertEqual(self._enviar(hilo, texto='hola').status_code, 404)
+
+    def test_mensaje_vacio_se_rechaza_y_con_foto_se_guarda(self):
+        hilo, _ = Conversacion.entre(self.trab_a, self.sup_a)
+        self._login("trab_a")
+        self.assertEqual(self._enviar(hilo, texto='   ').status_code, 400)
+        r = self._enviar(hilo, texto='', foto=imagen())
+        self.assertEqual(r.status_code, 201)
+        self.assertTrue(Mensaje.objects.get().foto.name.startswith('chat/'))
+
+    def test_sondeo_devuelve_solo_lo_nuevo(self):
+        hilo, _ = Conversacion.entre(self.trab_a, self.sup_a)
+        viejo = Mensaje.objects.create(conversacion=hilo, autor=self.trab_a, texto='primero')
+        nuevo = Mensaje.objects.create(conversacion=hilo, autor=self.trab_a, texto='segundo')
+        self._login("sup_a")
+        data = self.client.get(reverse('marvelec_app:chat_mensajes', args=[hilo.pk]),
+                               {'desde': viejo.pk}).json()
+        self.assertEqual([m['texto'] for m in data['mensajes']], ['segundo'])
+        self.assertEqual(data['ultimo_id'], nuevo.pk)
+        self.assertFalse(data['mensajes'][0]['propio'])
+
+    def test_push_al_destinatario_y_sin_aviso_en_la_campanita(self):
+        SuscripcionPush.objects.create(usuario=self.sup_a, endpoint='https://push.example/1', p256dh='k', auth='a')
+        hilo, _ = Conversacion.entre(self.trab_a, self.sup_a)
+        self._login("trab_a")
+        with mock.patch('marvelec_app.push.enviar_notificacion_push') as enviar:
+            self._enviar(hilo, texto='una consulta')
+        self.assertEqual([c.args[0] for c in enviar.call_args_list], [self.sup_a])
+        # El chat tiene su propio contador: no inunda el centro de avisos.
+        self.assertEqual(Notificacion.objects.count(), 0)
+
+    def test_bandeja_y_conversacion_cargan_para_ambos_roles(self):
+        hilo, _ = Conversacion.entre(self.trab_a, self.sup_a)
+        Mensaje.objects.create(conversacion=hilo, autor=self.trab_a, texto='hola')
+        for usuario in ('trab_a', 'sup_a'):
+            self._login(usuario)
+            r = self.client.get(reverse('marvelec_app:chat'))
+            self.assertEqual(r.status_code, 200, usuario)
+            self.assertContains(r, 'hola')
+            self.assertEqual(self.client.get(reverse('marvelec_app:chat_conversacion', args=[hilo.pk])).status_code, 200)
+
+    def test_bandeja_no_lista_conversaciones_sin_mensajes(self):
+        Conversacion.entre(self.trab_a, self.sup_a)
+        self._login("trab_a")
+        r = self.client.get(reverse('marvelec_app:chat'))
+        self.assertEqual(r.context['conversaciones'], [])
+        # Sigue apareciendo como contacto para iniciarla.
+        self.assertIn(self.sup_a.pk, [p.usuario_id for p in r.context['contactos']])
+
+
 class AdminTests(BaseEscenario):
 
     def setUp(self):
@@ -787,8 +889,8 @@ class AdminTests(BaseEscenario):
         for nombre in ('admin:index', 'admin:auth_user_changelist', 'admin:auth_group_changelist'):
             self.assertEqual(self.client.get(reverse(nombre)).status_code, 200, nombre)
         for modelo in ('obra', 'zona', 'rack', 'paquete', 'punto', 'tipopunto', 'perfiltrabajador', 'reporteavance',
-                       'tipoincidencia', 'incidencia', 'asistencia', 'notificacion', 'suscripcionpush',
-                       'resumendiarioenviado'):
+                       'tipoincidencia', 'incidencia', 'asistencia', 'conversacion', 'notificacion',
+                       'suscripcionpush', 'resumendiarioenviado'):
             r = self.client.get(reverse(f'admin:marvelec_app_{modelo}_changelist'))
             self.assertEqual(r.status_code, 200, modelo)
         for modelo, pk in (('reporteavance', reporte.pk), ('punto', self._p('DT-001').pk), ('rack', self.rack_a.pk)):
